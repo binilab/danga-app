@@ -33,7 +33,7 @@ export function VoteButton({
         onClick={() => {
           void toggleVote();
         }}
-        className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`danga-touch rounded-full border px-3.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
           likedByMe
             ? "border-rose-200 bg-rose-50 text-rose-700"
             : "border-[var(--line)] bg-white text-slate-700 hover:bg-slate-50"

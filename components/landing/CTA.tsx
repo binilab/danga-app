@@ -21,7 +21,7 @@ export function CTA() {
         href="/feed"
         className="mt-6 inline-flex rounded-full bg-[var(--foreground)] px-6 py-3 text-sm font-bold text-white transition hover:translate-y-[-1px] hover:opacity-95"
       >
-        구경하기
+        피드 보기
       </Link>
     </section>
   );

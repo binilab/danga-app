@@ -83,7 +83,7 @@ export function ProfileMenu({
             onClick={() => setIsOpen(false)}
             className="block rounded-lg px-2 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            업로드
+            코디 올리기
           </Link>
           <Link
             href="/notifications"

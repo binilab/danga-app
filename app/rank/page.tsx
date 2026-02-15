@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
-import { type PostRow } from "@/lib/posts";
+import { type PostRow, toAuthorLabel } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
   formatRankingBadgeLabel,
@@ -38,7 +38,7 @@ function resolveAuthorLabel(profile: ProfileRow | undefined, userId: string) {
     return profile.nickname.trim();
   }
 
-  return `user_${userId.slice(0, 8)}`;
+  return toAuthorLabel(userId);
 }
 
 /**

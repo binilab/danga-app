@@ -67,7 +67,7 @@ export default async function AdminPage() {
           description="관리자 페이지는 로그인 후 접근할 수 있습니다."
         />
         <section className="danga-panel space-y-3 p-5 text-sm text-slate-600">
-          <p>로그인이 필요합니다. 헤더의 시작하기 버튼으로 로그인해주세요.</p>
+          <p>로그인이 필요합니다. 헤더의 로그인하고 시작 버튼으로 로그인해주세요.</p>
           <Link
             href="/"
             className="inline-flex rounded-full border border-[var(--line)] px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50"

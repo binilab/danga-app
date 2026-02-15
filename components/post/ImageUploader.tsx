@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  MAX_POST_TAGS,
-  parseTagInput,
-  validatePostTags,
-} from "@/lib/tags";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { ErrorState } from "@/components/ui/State";
+import { MAX_POST_TAGS, parseTagInput, validatePostTags } from "@/lib/tags";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -49,7 +49,7 @@ function formatMegabytes(bytes: number) {
  */
 function validateFile(file: File | null) {
   if (!file) {
-    return "먼저 업로드할 이미지를 선택해주세요.";
+    return "먼저 이미지를 선택해주세요.";
   }
 
   if (!ACCEPTED_TYPES.includes(file.type)) {
@@ -249,7 +249,7 @@ export function ImageUploader() {
         const message =
           result && "message" in result
             ? result.message
-            : "게시글 등록에 실패했습니다. 잠시 후 다시 시도해주세요.";
+            : "코디 저장에 실패했습니다. 잠시 후 다시 시도해주세요.";
 
         setErrorMessage(message);
         return;
@@ -258,153 +258,153 @@ export function ImageUploader() {
       router.push("/feed");
       router.refresh();
     } catch {
-      setErrorMessage("게시글 저장 중 네트워크 오류가 발생했습니다.");
+      setErrorMessage("코디 저장 중 네트워크 오류가 발생했습니다.");
     } finally {
       setIsSubmittingPost(false);
     }
   }
 
   const parsedTags = parseTagInput(tagsInput);
+  const isBusy = isUploading || isSubmittingPost;
 
   return (
-    <section className="danga-panel space-y-4 p-5">
-      <div>
-        <h2 className="text-base font-bold text-slate-900">이미지 업로드 (R2)</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          지원 형식: PNG/JPEG/WEBP, 최대 {formatMegabytes(MAX_IMAGE_SIZE_BYTES)}
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          onChange={handleFileChange}
-          className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-700"
-        />
-
-        {selectedFile ? (
-          <p className="text-xs text-slate-500">
-            선택 파일: {selectedFile.name} ({formatMegabytes(selectedFile.size)})
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <Badge tone={uploadedUrl ? "success" : "neutral"}>1단계</Badge>
+          <h2 className="text-base font-bold text-slate-900">이미지 올리기</h2>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          <p className="text-sm text-slate-600">
+            지원 형식: PNG/JPEG/WEBP, 최대 {formatMegabytes(MAX_IMAGE_SIZE_BYTES)}
           </p>
-        ) : null}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleFileChange}
+            className="w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-slate-700"
+          />
 
-        <button
-          type="button"
-          disabled={isUploading || isSubmittingPost}
-          onClick={() => {
-            void handleUpload();
-          }}
-          className="rounded-full bg-[var(--foreground)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isUploading ? "업로드 중..." : "이미지 업로드"}
-        </button>
-      </div>
-
-      {errorMessage ? (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-          {errorMessage}
-        </p>
-      ) : null}
-
-      {uploadedUrl ? (
-        <div className="space-y-3 rounded-xl border border-[var(--line)] bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-800">업로드 성공</p>
-
-          <div className="overflow-hidden rounded-lg border border-[var(--line)] bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={signedPreviewUrl ?? uploadedUrl}
-              alt="업로드된 이미지 미리보기"
-              className="h-auto max-h-80 w-full object-contain"
-            />
-          </div>
-
-          {uploadedKey ? (
-            <p className="text-xs text-slate-500 break-all">R2 Key: {uploadedKey}</p>
+          {selectedFile ? (
+            <p className="text-xs text-slate-500">
+              선택 파일: {selectedFile.name} ({formatMegabytes(selectedFile.size)})
+            </p>
           ) : null}
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-600">이미지 URL</p>
-            <div className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-xs text-slate-700 break-all">
-              {uploadedUrl}
-            </div>
-            {signedPreviewUrl && signedPreviewUrl !== uploadedUrl ? (
-              <>
-                <p className="text-xs font-semibold text-slate-600">
-                  임시 미리보기 URL (1시간)
-                </p>
-                <div className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-xs text-slate-700 break-all">
-                  {signedPreviewUrl}
-                </div>
-              </>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                void handleCopyUrl();
-              }}
-              className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-            >
-              URL 복사
-            </button>
-            {copyMessage ? <p className="text-xs text-slate-500">{copyMessage}</p> : null}
-          </div>
+          <Button
+            type="button"
+            disabled={isBusy}
+            onClick={() => {
+              void handleUpload();
+            }}
+            variant="secondary"
+          >
+            {isUploading ? "업로드 중..." : "이미지 업로드"}
+          </Button>
+        </CardBody>
+      </Card>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="post-caption"
-              className="text-sm font-semibold text-slate-700"
-            >
-              캡션
-            </label>
-            <textarea
-              id="post-caption"
-              rows={4}
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-              placeholder="코디 설명을 입력해주세요."
-              className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
-            />
-            <label htmlFor="post-tags" className="text-sm font-semibold text-slate-700">
-              태그
-            </label>
-            <input
-              id="post-tags"
-              type="text"
-              value={tagsInput}
-              onChange={(event) => setTagsInput(event.target.value)}
-              placeholder="#미니멀 #스트릿 또는 미니멀, 스트릿"
-              className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
-            />
-            <p className="text-xs text-slate-500">
-              공백/쉼표 기준으로 최대 {MAX_POST_TAGS}개까지 저장됩니다.
-            </p>
-            {parsedTags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {parsedTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-[var(--line)] bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+      {uploadedUrl ? (
+        <Card>
+          <CardHeader className="flex items-center gap-2">
+            <Badge tone="success">2단계</Badge>
+            <h2 className="text-base font-bold text-slate-900">코디 정보 입력</h2>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)] bg-slate-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={signedPreviewUrl ?? uploadedUrl}
+                alt="업로드된 이미지 미리보기"
+                className="h-auto max-h-96 w-full object-contain"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-600">이미지 URL</p>
+              <div className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-white px-3 py-2 text-xs text-slate-700 break-all">
+                {uploadedUrl}
               </div>
-            ) : null}
-            <button
-              type="button"
-              disabled={isUploading || isSubmittingPost}
-              onClick={() => {
-                void handleCreatePost();
-              }}
-              className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmittingPost ? "게시글 저장 중..." : "게시글 등록"}
-            </button>
-          </div>
-        </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  void handleCopyUrl();
+                }}
+              >
+                URL 복사
+              </Button>
+              {copyMessage ? <p className="text-xs text-slate-500">{copyMessage}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="post-caption" className="text-sm font-semibold text-slate-700">
+                캡션
+              </label>
+              <textarea
+                id="post-caption"
+                rows={4}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                placeholder="코디 포인트를 짧고 선명하게 적어줘"
+                className="w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="post-tags" className="text-sm font-semibold text-slate-700">
+                태그
+              </label>
+              <input
+                id="post-tags"
+                type="text"
+                value={tagsInput}
+                onChange={(event) => setTagsInput(event.target.value)}
+                placeholder="#미니멀 #스트릿 또는 미니멀, 스트릿"
+                className="w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
+              />
+              <p className="text-xs text-slate-500">
+                공백/쉼표 기준으로 최대 {MAX_POST_TAGS}개까지 저장됩니다.
+              </p>
+              {parsedTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {parsedTags.map((tag) => (
+                    <Badge key={tag} tone="neutral">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="button"
+                disabled={isBusy}
+                onClick={() => {
+                  void handleCreatePost();
+                }}
+              >
+                {isSubmittingPost ? "저장 중..." : "코디 올리기"}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      ) : (
+        <Card>
+          <CardBody className="py-6 text-sm text-slate-600">
+            이미지 업로드가 끝나면 2단계 입력 폼이 열립니다.
+          </CardBody>
+        </Card>
+      )}
+
+      {errorMessage ? (
+        <ErrorState
+          title="처리에 실패했어요."
+          description={errorMessage}
+        />
       ) : null}
-    </section>
+    </div>
   );
 }

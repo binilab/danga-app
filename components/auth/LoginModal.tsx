@@ -40,7 +40,7 @@ function ProviderButton({
   pending: boolean;
   onClick: (provider: OAuthProvider) => void;
 }) {
-  const label = provider === "google" ? "Google로 시작하기" : "Kakao로 시작하기";
+  const label = provider === "google" ? "Google로 로그인" : "Kakao로 로그인";
 
   return (
     <button
@@ -55,7 +55,7 @@ function ProviderButton({
 }
 
 /**
- * 헤더의 시작하기 버튼으로 여는 로그인 모달입니다.
+ * 헤더의 로그인 버튼으로 여는 로그인 모달입니다.
  */
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const pathname = usePathname();
@@ -142,10 +142,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         className="relative z-10 w-full max-w-sm rounded-2xl border border-[var(--line)] bg-white p-5 shadow-xl"
       >
         <h2 id="auth-modal-title" className="text-lg font-black text-slate-900">
-          시작하기
+          로그인하고 시작
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          Google 또는 Kakao 계정으로 로그인해 DANGA를 시작하세요.
+          Google 또는 Kakao 계정으로 로그인해 바로 시작해봐.
         </p>
 
         <div className="mt-5 space-y-2">

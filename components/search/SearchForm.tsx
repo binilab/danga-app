@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody } from "@/components/ui/Card";
 
 type SearchFormProps = {
   defaultQuery?: string;
@@ -12,25 +14,22 @@ type SearchFormProps = {
 export function SearchForm({ defaultQuery = "", activeTag = null, className }: SearchFormProps) {
   return (
     <div className={className}>
-      <form
-        action="/search"
-        method="get"
-        className="danga-panel flex flex-wrap items-center gap-2 p-3"
-      >
-        <input
-          name="q"
-          defaultValue={defaultQuery}
-          placeholder="코디 설명 검색 (Enter)"
-          className="min-w-0 flex-1 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
-        />
-        {activeTag ? <input type="hidden" name="tag" value={activeTag} /> : null}
-        <button
-          type="submit"
-          className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95"
-        >
-          검색
-        </button>
-      </form>
+      <Card>
+        <CardBody className="pt-5">
+          <form action="/search" method="get" className="flex flex-wrap items-center gap-2">
+            <input
+              name="q"
+              defaultValue={defaultQuery}
+              placeholder="한 번에 찾고 싶은 코디를 입력해줘"
+              className="danga-touch min-w-0 flex-1 rounded-full border border-[var(--line)] bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
+            />
+            {activeTag ? <input type="hidden" name="tag" value={activeTag} /> : null}
+            <Button type="submit" variant="secondary">
+              바로 검색
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
 
       {activeTag ? (
         <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">

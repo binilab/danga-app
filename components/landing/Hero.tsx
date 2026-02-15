@@ -39,13 +39,13 @@ export function Hero() {
           href="/post/new"
           className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-bold text-white transition hover:translate-y-[-1px] hover:brightness-95"
         >
-          지금 올리기
+          코디 올리기
         </Link>
         <Link
           href="/feed"
           className="rounded-full border border-[var(--line)] bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:translate-y-[-1px] hover:bg-slate-50"
         >
-          구경하기
+          피드 보기
         </Link>
       </div>
 

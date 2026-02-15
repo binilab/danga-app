@@ -6,7 +6,7 @@ import { MyLikes, type MyLikeItem } from "@/components/me/MyLikes";
 import { MyComments, type MyCommentItem } from "@/components/me/MyComments";
 import { ProfileEditor } from "@/components/me/ProfileEditor";
 import { AccountDangerZone } from "@/components/me/AccountDangerZone";
-import { type PostRow, toAuthorLabel } from "@/lib/posts";
+import { fetchAuthorLabelMapForUserIds, type PostRow } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
   fetchVoteSummaryMapForPosts,
@@ -179,6 +179,10 @@ async function fetchMyPostsData({
     period: "weekly",
     postIds,
   });
+  const authorLabelMap = await fetchAuthorLabelMapForUserIds({
+    supabase,
+    userIds: items.map((post) => post.user_id),
+  });
   const displayImageMap = await buildDisplayImageMap(items);
 
   return {
@@ -191,7 +195,7 @@ async function fetchMyPostsData({
         caption: post.caption,
         tags: post.tags,
         createdAt: post.created_at,
-        authorLabel: toAuthorLabel(post.user_id),
+        authorLabel: authorLabelMap.get(post.user_id) ?? "익명",
         voteCount: voteSummary.count,
         likedByMe: voteSummary.likedByMe,
         badge: badgeMap.get(post.id) ?? null,
@@ -242,6 +246,10 @@ async function fetchMyLikesData({
 
   const posts = (postData ?? []) as PostRow[];
   const postMap = new Map(posts.map((post) => [post.id, post]));
+  const authorLabelMap = await fetchAuthorLabelMapForUserIds({
+    supabase,
+    userIds: posts.map((post) => post.user_id),
+  });
   const displayImageMap = await buildDisplayImageMap(posts);
 
   return {
@@ -257,7 +265,7 @@ async function fetchMyLikesData({
           postId: post.id,
           postCaption: post.caption,
           postImageUrl: displayImageMap.get(post.id) ?? post.image_url,
-          postAuthorLabel: toAuthorLabel(post.user_id),
+          postAuthorLabel: authorLabelMap.get(post.user_id) ?? "익명",
           likedAt: vote.created_at,
         } satisfies MyLikeItem;
       })
@@ -346,7 +354,7 @@ export default async function MePage({ searchParams }: MePageProps) {
           description="내 글/좋아요/댓글과 프로필을 관리하는 공간입니다."
         />
         <section className="danga-panel p-5 text-sm text-slate-600">
-          로그인이 필요합니다. 헤더의 <span className="font-semibold">시작하기</span>{" "}
+          로그인이 필요합니다. 헤더의 <span className="font-semibold">로그인하고 시작</span>{" "}
           버튼으로 로그인 후 다시 시도해주세요.
         </section>
       </div>

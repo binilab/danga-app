@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type PostRow = {
   id: string;
   user_id: string;
@@ -10,10 +12,51 @@ export type PostRow = {
 };
 
 /**
- * 사용자 식별 문자열(user_id)을 피드에 표시할 간단한 닉네임 형태로 변환합니다.
+ * 프로필 닉네임을 찾지 못했을 때 사용할 기본 작성자 라벨을 반환합니다.
  */
 export function toAuthorLabel(userId: string) {
-  return `user_${userId.slice(0, 8)}`;
+  return userId.trim().length > 0 ? "익명" : "익명";
+}
+
+/**
+ * user_id 배열 기준으로 profiles.nickname을 한 번에 조회해 작성자 라벨 맵으로 변환합니다.
+ */
+export async function fetchAuthorLabelMapForUserIds({
+  supabase,
+  userIds,
+}: {
+  supabase: SupabaseClient;
+  userIds: string[];
+}) {
+  const uniqueUserIds = [...new Set(userIds.filter((userId) => userId.trim().length > 0))];
+
+  if (uniqueUserIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, nickname")
+    .in("id", uniqueUserIds);
+  const labelMap = new Map<string, string>();
+
+  if (!error && data) {
+    for (const row of data as { id: string; nickname: string | null }[]) {
+      const nickname = row.nickname?.trim();
+
+      if (nickname) {
+        labelMap.set(row.id, nickname);
+      }
+    }
+  }
+
+  for (const userId of uniqueUserIds) {
+    if (!labelMap.has(userId)) {
+      labelMap.set(userId, toAuthorLabel(userId));
+    }
+  }
+
+  return labelMap;
 }
 
 /**

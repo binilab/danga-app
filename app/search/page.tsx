@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
-import { PostItemCard } from "@/components/post/PostItemCard";
+import { PostCard } from "@/components/post/PostCard";
 import { SearchForm } from "@/components/search/SearchForm";
-import { type PostRow, toAuthorLabel } from "@/lib/posts";
+import { ButtonLink } from "@/components/ui/Button";
+import { EmptyState, ErrorState } from "@/components/ui/State";
+import { fetchAuthorLabelMapForUserIds, type PostRow } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
   fetchRankingBadgeMapForPosts,
@@ -133,6 +134,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const hasMore = rows.length > PAGE_SIZE;
   const items = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
   const postIds = items.map((post) => post.id);
+  const authorLabelMap = await fetchAuthorLabelMapForUserIds({
+    supabase,
+    userIds: items.map((post) => post.user_id),
+  });
   const voteSummaryMap = await fetchVoteSummaryMapForPosts({
     supabase: supabase as unknown as SupabaseVotesReader,
     postIds,
@@ -150,7 +155,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       return {
         ...post,
         displayImageUrl: await resolveDisplayImageUrl(post),
-        authorLabel: toAuthorLabel(post.user_id),
+        authorLabel: authorLabelMap.get(post.user_id) ?? "익명",
         voteCount: voteSummary.count,
         likedByMe: voteSummary.likedByMe,
         badge: weeklyBadgeMap.get(post.id) ?? null,
@@ -161,24 +166,27 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Search"
-        description="키워드와 태그로 원하는 코디를 빠르게 찾아보세요."
+        title="검색"
+        description="원하는 코디를 한 번에 찾아봐. 키워드와 태그를 같이 써도 돼."
       />
 
       <SearchForm defaultQuery={q} activeTag={tag} />
 
       {error ? (
-        <section className="danga-panel p-5 text-sm text-rose-700">
-          검색 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
-        </section>
+        <ErrorState
+          title="검색 결과를 불러오지 못했어요."
+          description="잠시 후 다시 시도해줘."
+        />
       ) : cards.length === 0 ? (
-        <section className="danga-panel p-5 text-sm text-slate-600">
-          조건에 맞는 게시글이 없습니다. 다른 검색어 또는 태그를 시도해주세요.
-        </section>
+        <EmptyState
+          title="조건에 맞는 코디가 없어요."
+          description="검색어를 바꾸거나 태그 필터를 해제해봐."
+          action={<ButtonLink href="/feed" variant="secondary">피드 보기</ButtonLink>}
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid danga-grid-gap sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((post) => (
-            <PostItemCard
+            <PostCard
               key={post.id}
               id={post.id}
               href={`/p/${post.id}`}
@@ -198,12 +206,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
       {hasMore ? (
         <div className="flex justify-center">
-          <Link
-            href={buildSearchHref({ q, tag, page: page + 1 })}
-            className="rounded-full border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            더보기
-          </Link>
+          <ButtonLink href={buildSearchHref({ q, tag, page: page + 1 })} variant="secondary">
+            더 보기
+          </ButtonLink>
         </div>
       ) : null}
     </div>

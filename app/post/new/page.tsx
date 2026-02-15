@@ -8,8 +8,8 @@ export default function NewPostPage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Upload"
-        description="이미지를 업로드하고 캡션을 입력해 게시글을 등록하세요. 등록되면 피드로 이동합니다."
+        title="코디 올리기"
+        description="이미지를 올리고 한 번에 공개해봐. 반응은 피드에서 바로 확인할 수 있어."
       />
       <ImageUploader />
     </div>

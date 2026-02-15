@@ -1,5 +1,7 @@
 import { PageTitle } from "@/components/PageTitle";
 import { NotificationList } from "@/components/notifications/NotificationList";
+import { Button } from "@/components/ui/Button";
+import { EmptyState, ErrorState } from "@/components/ui/State";
 import { fetchNotificationItemsForUser } from "@/lib/notifications";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -16,13 +18,14 @@ export default async function NotificationsPage() {
     return (
       <div className="space-y-6">
         <PageTitle
-          title="Notifications"
-          description="좋아요/댓글/운영 처리 결과를 알림으로 확인합니다."
+          title="알림"
+          description="좋아요, 댓글, 운영 상태를 한 번에 확인해."
         />
-        <section className="danga-panel p-5 text-sm text-slate-600">
-          로그인 후 알림을 확인할 수 있습니다. 헤더의{" "}
-          <span className="font-semibold">시작하기</span> 버튼으로 로그인해주세요.
-        </section>
+        <EmptyState
+          title="로그인이 필요해요."
+          description='헤더의 "로그인하고 시작" 버튼으로 접속해줘.'
+          action={<Button type="button" variant="secondary" disabled>로그인하고 시작</Button>}
+        />
       </div>
     );
   }
@@ -35,13 +38,14 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Notifications"
-        description="좋아요, 댓글, 운영 상태 변경 알림을 최신순으로 확인하세요."
+        title="알림"
+        description="좋아요, 댓글, 운영 상태 변경 알림을 최신순으로 보여줘."
       />
       {hasError ? (
-        <section className="danga-panel p-5 text-sm text-rose-700">
-          알림 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
-        </section>
+        <ErrorState
+          title="알림을 불러오지 못했어요."
+          description="잠시 후 다시 시도해줘."
+        />
       ) : (
         <NotificationList viewerId={user.id} initialItems={items} />
       )}

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
 const siteName = "DANGA";
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
  * Header가 로딩되는 동안 레이아웃 높이가 흔들리지 않도록 임시 헤더 영역을 렌더링합니다.
  */
 function HeaderFallback() {
-  return <div className="h-[73px] border-b border-[var(--line)] bg-white/92" />;
+  return <div className="h-[76px] border-b border-[var(--line)] bg-white/92" />;
 }
 
 /**
@@ -61,7 +61,7 @@ export default function RootLayout({
           <Suspense fallback={<HeaderFallback />}>
             <Header />
           </Suspense>
-          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
             <main>{children}</main>
           </div>
           <Footer />

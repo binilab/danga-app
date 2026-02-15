@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 댓글 + 랭킹 + 마이페이지 + 신고/Admin + 인앱 알림 + 검색/태그 + 암호화 유틸 + 런칭 품질까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 댓글 + 랭킹 + 마이페이지 + 신고/Admin + 인앱 알림 + 검색/태그 + 암호화 유틸 + 런칭 품질 + UI 통일 스프린트까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -78,10 +78,17 @@
   - `모두 읽음` 일괄 처리 지원
 - 검색/태그 MVP(Part 15)
   - `/post/new`에서 태그 입력/파싱(`#`, 공백, 쉼표 기준) 및 `posts.tags(text[])` 저장
-  - `PostItemCard`에서 태그 chip 표시 + 클릭 시 `/search?tag=...` 이동
+  - `PostCard`에서 태그 chip 표시 + 클릭 시 `/search?tag=...` 이동
   - `/feed` 상단 검색 입력(Enter)으로 `/search?q=...` 이동
   - `/search` 페이지에서 `q`(caption ilike) + `tag`(array contains) AND 검색
   - 최신순 20개 로딩 + 더보기 버튼
+- UI 개선 스프린트
+  - 디자인 토큰(간격/타이포/radius/shadow) 도입
+  - 공통 UI 컴포넌트 추가(`components/ui/*`)
+  - Header/Footer를 `components/layout/*`로 정리
+  - 피드 카드/상세/업로드 화면 가독성 중심으로 리디자인
+  - Empty/Loading/Error 상태를 공통 컴포넌트 기반으로 통일
+  - 카피 톤을 `단번에/바로/한 번에` 느낌으로 정리
 
 ## 실행 방법
 ```bash
@@ -169,6 +176,9 @@ components/
   Header.tsx
   PageTitle.tsx
   PostCard.tsx
+  layout/
+    Footer.tsx
+    Header.tsx
   auth/
     LoginModal.tsx
     ProfileMenu.tsx
@@ -182,6 +192,7 @@ components/
     SampleGallery.tsx
   post/
     ImageUploader.tsx
+    PostCard.tsx
     PostItemCard.tsx
     VoteButton.tsx
   admin/
@@ -201,6 +212,12 @@ components/
     ReportModal.tsx
   search/
     SearchForm.tsx
+  ui/
+    Badge.tsx
+    Button.tsx
+    Card.tsx
+    Skeleton.tsx
+    State.tsx
 hooks/
   useVote.ts
 lib/
