@@ -32,6 +32,14 @@ export type AdminReportItem = {
   targetSummary: string | null;
   targetDeletedAt: string | null;
   targetPostIdForComment: string | null;
+  reporterName: string | null;
+  reporterEmail: string | null;
+};
+
+export type AdminReporterIdentityRow = {
+  id: string;
+  reporter_name: string | null;
+  reporter_email: string | null;
 };
 
 /**
@@ -61,15 +69,22 @@ export function buildAdminReportItems({
   reports,
   posts,
   comments,
+  reporterIdentities,
 }: {
   reports: ReportRow[];
   posts: AdminPostTargetRow[];
   comments: AdminCommentTargetRow[];
+  reporterIdentities: AdminReporterIdentityRow[];
 }) {
   const postMap = new Map(posts.map((post) => [post.id, post]));
   const commentMap = new Map(comments.map((comment) => [comment.id, comment]));
+  const reporterIdentityMap = new Map(
+    reporterIdentities.map((identity) => [identity.id, identity]),
+  );
 
   return reports.map((report) => {
+    const reporterIdentity = reporterIdentityMap.get(report.reporter_id);
+
     if (report.target_type === "post") {
       const post = postMap.get(report.target_id);
 
@@ -87,6 +102,8 @@ export function buildAdminReportItems({
         targetSummary: post?.caption ?? null,
         targetDeletedAt: post?.deleted_at ?? null,
         targetPostIdForComment: null,
+        reporterName: reporterIdentity?.reporter_name ?? null,
+        reporterEmail: reporterIdentity?.reporter_email ?? null,
       } satisfies AdminReportItem;
     }
 
@@ -106,6 +123,8 @@ export function buildAdminReportItems({
       targetSummary: comment?.body ?? null,
       targetDeletedAt: comment?.deleted_at ?? null,
       targetPostIdForComment: comment?.post_id ?? null,
+      reporterName: reporterIdentity?.reporter_name ?? null,
+      reporterEmail: reporterIdentity?.reporter_email ?? null,
     } satisfies AdminReportItem;
   });
 }

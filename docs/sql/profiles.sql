@@ -5,12 +5,16 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   nickname text not null,
   avatar_url text,
+  email_enc text,
+  name_enc text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
 comment on column public.profiles.deleted_at is '계정 soft delete 시각';
+comment on column public.profiles.email_enc is '암호화된 이메일(base64 AES-GCM)';
+comment on column public.profiles.name_enc is '암호화된 이름(base64 AES-GCM)';
 
 create index if not exists profiles_deleted_at_idx
   on public.profiles (deleted_at);

@@ -86,7 +86,12 @@ export function ReportsTable({
                   {row.targetSummary ?? "삭제되었거나 조회할 수 없는 대상입니다."}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  신고자: {toShortUserLabel(row.reporterId)}
+                  신고자:{" "}
+                  {row.reporterName
+                    ? row.reporterEmail
+                      ? `${row.reporterName} (${row.reporterEmail})`
+                      : row.reporterName
+                    : toShortUserLabel(row.reporterId)}
                 </p>
               </button>
             );

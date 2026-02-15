@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 고도화(Part 9)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 + 신고/Admin + 암호화 유틸(Part 12 선택)까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -22,7 +22,7 @@
 - posts 작성/피드/상세
 - votes 토글(optimistic UI)
 
-### Part 8~10 (현재)
+### Part 8~12 (현재)
 - `/rank` 주간/월간 탭 UI
 - 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
 - Top 50 (rank asc)
@@ -45,6 +45,9 @@
 - `/me` 계정 탈퇴(soft delete)
   - `profiles.deleted_at = now()`
   - 로그아웃 후 `/` 이동
+- 댓글 MVP
+  - `/p/[id]`에서 댓글 작성 폼 제공
+  - 댓글 등록 후 목록 즉시 반영
 - 신고(Reports) MVP
   - 게시글/댓글 신고 모달
   - 중복 신고 방지(unique) 에러 메시지 처리
@@ -55,6 +58,10 @@
   - RPC 기반 숨김 처리
     - `admin_soft_delete_post`
     - `admin_soft_delete_comment`
+- AES-256-GCM 암호화(서버 전용)
+  - `APP_ENCRYPTION_KEY` 기반 `encrypt/decrypt`
+  - profiles 암호화 컬럼(`email_enc`, `name_enc`) 저장
+  - admin 화면에서만 복호화 분기 표시
 
 ## 실행 방법
 ```bash
@@ -69,6 +76,11 @@ npm run dev
 ```env
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+### App Encryption
+```env
+APP_ENCRYPTION_KEY=... # base64 encoded 32-byte key
 ```
 
 ### Cloudflare R2
@@ -86,6 +98,7 @@ R2_PUBLIC_BASE_URL=...
    - `docs/sql/posts.sql`
    - `docs/sql/votes.sql`
    - `docs/sql/reports.sql`
+   - `docs/sql/profiles_encryption.sql` (Part 12 선택)
 2. 랭킹 뷰 생성
    - `weekly_post_rankings`
    - `monthly_post_rankings`
@@ -98,7 +111,9 @@ R2_PUBLIC_BASE_URL=...
 ```text
 app/
   admin/page.tsx
+  api/comments/route.ts
   api/posts/route.ts
+  api/profiles/encrypted/route.ts
   api/reports/route.ts
   api/upload/route.ts
   api/votes/route.ts
@@ -118,6 +133,8 @@ components/
   auth/
     LoginModal.tsx
     ProfileMenu.tsx
+  comment/
+    CommentSection.tsx
   landing/
     CTA.tsx
     Hero.tsx
@@ -144,12 +161,16 @@ components/
 hooks/
   useVote.ts
 lib/
+  admin.ts
+  comments.ts
+  crypto/
+    aesgcm.ts
+    profileSensitive.ts
   mock.ts
   posts.ts
   r2.ts
   rankings.ts
   reports.ts
-  admin.ts
   votes.ts
   supabase/
     client.ts
@@ -158,12 +179,14 @@ docs/
   1.md
   sql/profiles.sql
   sql/posts.sql
+  sql/profiles_encryption.sql
   sql/reports.sql
   sql/votes.sql
   진행사항.md
 supabase/
   migrations/20260216_create_posts.sql
   migrations/20260216_create_reports_admin.sql
+  migrations/20260216_profiles_encryption.sql
   migrations/20260216_profiles_soft_delete.sql
   migrations/20260216_create_votes.sql
 ```

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { PageTitle } from "@/components/PageTitle";
+import { CommentSection } from "@/components/comment/CommentSection";
 import { PostItemCard } from "@/components/post/PostItemCard";
 import { ReportButton } from "@/components/report/ReportButton";
-import { formatPostDate, type PostRow, toAuthorLabel } from "@/lib/posts";
+import { type PostRow, toAuthorLabel } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
   fetchRankingBadgeMapForPosts,
@@ -108,37 +109,11 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
         </div>
       </div>
 
-      <section className="max-w-2xl space-y-3">
-        <h2 className="text-base font-bold text-slate-900">댓글 {comments.length}</h2>
-        {comments.length === 0 ? (
-          <div className="danga-panel p-4 text-sm text-slate-600">
-            아직 댓글이 없습니다.
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {comments.map((comment) => (
-              <li key={comment.id} className="danga-panel p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-500">
-                      @{toAuthorLabel(comment.user_id)} · {formatPostDate(comment.created_at)}
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">
-                      {comment.body}
-                    </p>
-                  </div>
-                  <ReportButton
-                    targetType="comment"
-                    targetId={comment.id}
-                    isLoggedIn={Boolean(user)}
-                    className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <CommentSection
+        postId={post.id}
+        isLoggedIn={Boolean(user)}
+        initialComments={comments}
+      />
     </div>
   );
 }

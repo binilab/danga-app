@@ -7,9 +7,40 @@ import {
   sortReportsByCreatedAtDesc,
   type AdminCommentTargetRow,
   type AdminPostTargetRow,
+  type AdminReporterIdentityRow,
 } from "@/lib/admin";
+import { decryptProfileSensitiveFields } from "@/lib/crypto/profileSensitive";
 import { type ReportRow } from "@/lib/reports";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+type ReporterSensitiveRow = {
+  id: string;
+  nickname: string | null;
+  email_enc: string | null;
+  name_enc: string | null;
+};
+
+/**
+ * 암호화 컬럼이 손상되었거나 키가 잘못된 경우를 대비해 복호화 오류를 안전하게 무시합니다.
+ */
+function safeDecryptReporterIdentity(row: ReporterSensitiveRow) {
+  try {
+    const decrypted = decryptProfileSensitiveFields({
+      emailEnc: row.email_enc,
+      nameEnc: row.name_enc,
+    });
+
+    return {
+      reporter_name: decrypted.name ?? row.nickname ?? null,
+      reporter_email: decrypted.email ?? null,
+    };
+  } catch {
+    return {
+      reporter_name: row.nickname ?? null,
+      reporter_email: null,
+    };
+  }
+}
 
 /**
  * /admin 페이지에서 세션/권한 확인 후 신고 관리 화면을 렌더링합니다.
@@ -95,6 +126,7 @@ export default async function AdminPage() {
   const commentTargetIds = reports
     .filter((report) => report.target_type === "comment")
     .map((report) => report.target_id);
+  const reporterIds = Array.from(new Set(reports.map((report) => report.reporter_id)));
 
   const { data: postTargetData } =
     postTargetIds.length > 0
@@ -110,12 +142,30 @@ export default async function AdminPage() {
           .select("id, body, post_id, deleted_at")
           .in("id", commentTargetIds)
       : { data: [] as unknown[] };
+  const { data: reporterSensitiveData } =
+    reporterIds.length > 0
+      ? await supabase.rpc("admin_list_profile_identities", {
+          p_user_ids: reporterIds,
+        })
+      : { data: [] as unknown[] };
+  const reporterIdentities = ((reporterSensitiveData ?? []) as ReporterSensitiveRow[]).map(
+    (row) => {
+      const decrypted = safeDecryptReporterIdentity(row);
+
+      return {
+        id: row.id,
+        reporter_name: decrypted.reporter_name,
+        reporter_email: decrypted.reporter_email,
+      } satisfies AdminReporterIdentityRow;
+    },
+  );
 
   const initialReports = sortReportsByCreatedAtDesc(
     buildAdminReportItems({
       reports,
       posts: (postTargetData ?? []) as AdminPostTargetRow[],
       comments: (commentTargetData ?? []) as AdminCommentTargetRow[],
+      reporterIdentities,
     }),
   );
 

@@ -92,7 +92,13 @@ export function ReportDetail({
 
       <div className="space-y-2 rounded-lg border border-[var(--line)] bg-slate-50 p-3">
         <p className="text-xs text-slate-500">
-          신고자: {toShortUserLabel(report.reporterId)} · 접수: {formatPostDate(report.createdAt)}
+          신고자:{" "}
+          {report.reporterName
+            ? report.reporterEmail
+              ? `${report.reporterName} (${report.reporterEmail})`
+              : report.reporterName
+            : toShortUserLabel(report.reporterId)}{" "}
+          · 접수: {formatPostDate(report.createdAt)}
         </p>
         <p className="text-sm font-semibold text-slate-800">신고 사유</p>
         <p className="whitespace-pre-wrap text-sm text-slate-700">{report.reason}</p>

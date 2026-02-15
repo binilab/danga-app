@@ -153,6 +153,26 @@ export function Header() {
   const activeNoticeMessage = noticeMessage ?? authMessageFromUrl;
 
   /**
+   * 로그인 사용자 민감 정보(email/name)를 서버에서 암호화 컬럼으로 동기화합니다.
+   */
+  const syncEncryptedProfile = useCallback(async () => {
+    try {
+      const response = await fetch("/api/profiles/encrypted", {
+        method: "POST",
+      });
+      const result = (await response.json()) as { ok?: boolean; message?: string };
+
+      if (!response.ok || !result.ok) {
+        if (result.message) {
+          setNoticeMessage(result.message);
+        }
+      }
+    } catch {
+      setNoticeMessage("암호화 프로필 동기화 중 네트워크 오류가 발생했습니다.");
+    }
+  }, []);
+
+  /**
    * 세션 정보에서 현재 헤더 사용자 상태를 계산하고 반영합니다.
    */
   const syncAuthUser = useCallback(
@@ -202,6 +222,9 @@ export function Header() {
       }
 
       await syncAuthUser(session, false);
+      if (session) {
+        void syncEncryptedProfile();
+      }
 
       if (isMounted) {
         setIsCheckingSession(false);
@@ -219,7 +242,12 @@ export function Header() {
       if (event === "SIGNED_IN") {
         setIsAuthModalOpen(false);
         setNoticeMessage(null);
+        void syncEncryptedProfile();
         router.refresh();
+      }
+
+      if (event === "USER_UPDATED") {
+        void syncEncryptedProfile();
       }
 
       if (event === "SIGNED_OUT") {
@@ -231,7 +259,7 @@ export function Header() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, supabase, syncAuthUser]);
+  }, [router, supabase, syncAuthUser, syncEncryptedProfile]);
 
   /**
    * 안내 토스트를 일정 시간 뒤 자동으로 사라지게 처리합니다.
