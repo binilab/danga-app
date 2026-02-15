@@ -1,21 +1,131 @@
+import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
+import { AdminReportsClient } from "@/components/admin/AdminReportsClient";
+import {
+  buildAdminReportItems,
+  isAdminProfile,
+  sortReportsByCreatedAtDesc,
+  type AdminCommentTargetRow,
+  type AdminPostTargetRow,
+} from "@/lib/admin";
+import { type ReportRow } from "@/lib/reports";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
- * 관리자 기능을 나중에 붙이기 위한 임시 페이지입니다.
+ * /admin 페이지에서 세션/권한 확인 후 신고 관리 화면을 렌더링합니다.
  */
-export default function AdminPage() {
+export default async function AdminPage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title="Admin"
+          description="관리자 페이지는 로그인 후 접근할 수 있습니다."
+        />
+        <section className="danga-panel space-y-3 p-5 text-sm text-slate-600">
+          <p>로그인이 필요합니다. 헤더의 시작하기 버튼으로 로그인해주세요.</p>
+          <Link
+            href="/"
+            className="inline-flex rounded-full border border-[var(--line)] px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            랜딩으로 이동
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("role, deleted_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!isAdminProfile((profileData as { role: string | null; deleted_at: string | null }) ?? null)) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title="Admin"
+          description="이 계정은 관리자 권한이 없어 접근할 수 없습니다."
+        />
+        <section className="danga-panel space-y-3 p-5 text-sm text-slate-600">
+          <p>운영 권한이 필요한 메뉴입니다. 필요한 경우 관리자에게 권한 요청을 해주세요.</p>
+          <Link
+            href="/"
+            className="inline-flex rounded-full border border-[var(--line)] px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            랜딩으로 이동
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
+  const { data: reportData, error: reportError } = await supabase
+    .from("reports")
+    .select(
+      "id, target_type, target_id, reporter_id, reason, status, created_at, reviewed_by, reviewed_at, notes",
+    )
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (reportError) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title="Admin"
+          description="신고 데이터를 불러오는 중 오류가 발생했습니다."
+        />
+        <section className="danga-panel p-5 text-sm text-rose-700">
+          reports 조회 권한 또는 정책(RLS)을 확인해주세요.
+        </section>
+      </div>
+    );
+  }
+
+  const reports = (reportData ?? []) as ReportRow[];
+  const postTargetIds = reports
+    .filter((report) => report.target_type === "post")
+    .map((report) => report.target_id);
+  const commentTargetIds = reports
+    .filter((report) => report.target_type === "comment")
+    .map((report) => report.target_id);
+
+  const { data: postTargetData } =
+    postTargetIds.length > 0
+      ? await supabase
+          .from("posts")
+          .select("id, caption, deleted_at")
+          .in("id", postTargetIds)
+      : { data: [] as unknown[] };
+  const { data: commentTargetData } =
+    commentTargetIds.length > 0
+      ? await supabase
+          .from("comments")
+          .select("id, body, post_id, deleted_at")
+          .in("id", commentTargetIds)
+      : { data: [] as unknown[] };
+
+  const initialReports = sortReportsByCreatedAtDesc(
+    buildAdminReportItems({
+      reports,
+      posts: (postTargetData ?? []) as AdminPostTargetRow[],
+      comments: (commentTargetData ?? []) as AdminCommentTargetRow[],
+    }),
+  );
+
   return (
     <div className="space-y-6">
       <PageTitle
         title="Admin"
-        description="관리자 기능은 이후 파트에서 구현됩니다. 현재는 placeholder입니다."
+        description="신고 접수 현황을 검토하고 상태 변경 및 콘텐츠 숨김 처리를 수행합니다."
       />
-      <section className="danga-panel p-5">
-        <p className="text-sm text-slate-600">
-          추후 신고 관리, 게시글 제재, 운영 통계 카드가 이 영역에 추가될
-          예정입니다.
-        </p>
-      </section>
+      <AdminReportsClient initialReports={initialReports} adminUserId={user.id} />
     </div>
   );
 }

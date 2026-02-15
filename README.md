@@ -22,7 +22,7 @@
 - posts 작성/피드/상세
 - votes 토글(optimistic UI)
 
-### Part 8~9 (현재)
+### Part 8~10 (현재)
 - `/rank` 주간/월간 탭 UI
 - 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
 - Top 50 (rank asc)
@@ -45,6 +45,16 @@
 - `/me` 계정 탈퇴(soft delete)
   - `profiles.deleted_at = now()`
   - 로그아웃 후 `/` 이동
+- 신고(Reports) MVP
+  - 게시글/댓글 신고 모달
+  - 중복 신고 방지(unique) 에러 메시지 처리
+- `/admin` 운영 화면
+  - admin 권한(`profiles.role='admin'`) 접근 제어
+  - 신고 리스트(status 필터 + created_at desc)
+  - 신고 상태 변경(status/reviewed_by/reviewed_at/notes)
+  - RPC 기반 숨김 처리
+    - `admin_soft_delete_post`
+    - `admin_soft_delete_comment`
 
 ## 실행 방법
 ```bash
@@ -75,6 +85,7 @@ R2_PUBLIC_BASE_URL=...
    - `docs/sql/profiles.sql`
    - `docs/sql/posts.sql`
    - `docs/sql/votes.sql`
+   - `docs/sql/reports.sql`
 2. 랭킹 뷰 생성
    - `weekly_post_rankings`
    - `monthly_post_rankings`
@@ -88,6 +99,7 @@ R2_PUBLIC_BASE_URL=...
 app/
   admin/page.tsx
   api/posts/route.ts
+  api/reports/route.ts
   api/upload/route.ts
   api/votes/route.ts
   auth/callback/route.ts
@@ -116,12 +128,19 @@ components/
     ImageUploader.tsx
     PostItemCard.tsx
     VoteButton.tsx
+  admin/
+    AdminReportsClient.tsx
+    ReportDetail.tsx
+    ReportsTable.tsx
   me/
     AccountDangerZone.tsx
     MyComments.tsx
     MyLikes.tsx
     MyPosts.tsx
     ProfileEditor.tsx
+  report/
+    ReportButton.tsx
+    ReportModal.tsx
 hooks/
   useVote.ts
 lib/
@@ -129,6 +148,8 @@ lib/
   posts.ts
   r2.ts
   rankings.ts
+  reports.ts
+  admin.ts
   votes.ts
   supabase/
     client.ts
@@ -137,10 +158,12 @@ docs/
   1.md
   sql/profiles.sql
   sql/posts.sql
+  sql/reports.sql
   sql/votes.sql
   진행사항.md
 supabase/
   migrations/20260216_create_posts.sql
+  migrations/20260216_create_reports_admin.sql
   migrations/20260216_profiles_soft_delete.sql
   migrations/20260216_create_votes.sql
 ```
@@ -148,5 +171,6 @@ supabase/
 ## 주의 사항
 - `posts`는 soft delete(`deleted_at`)를 사용합니다.
 - `profiles`도 soft delete(`deleted_at`)를 사용합니다.
+- 관리자 기능은 `profiles.role='admin'` 권한과 reports RLS 정책을 전제로 동작합니다.
 - 현재 단계에서는 **comments 고도화(신고/정렬/통계)는 아직 미구현**입니다.
 - R2 Access Key/Secret은 서버 API에서만 사용하며 클라이언트에 노출되지 않습니다.
