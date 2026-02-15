@@ -4,6 +4,7 @@ export type PostRow = {
   image_url: string;
   image_key: string | null;
   caption: string;
+  tags: string[] | null;
   created_at: string;
   deleted_at: string | null;
 };

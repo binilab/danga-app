@@ -55,7 +55,7 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
   } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -97,6 +97,7 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
           id={post.id}
           imageUrl={displayImageUrl}
           caption={post.caption}
+          tags={post.tags}
           createdAt={post.created_at}
           authorLabel={toAuthorLabel(post.user_id)}
           voteCount={voteSummary.count}

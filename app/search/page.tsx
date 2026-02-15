@@ -8,21 +8,22 @@ import {
   fetchRankingBadgeMapForPosts,
   type SupabaseRankingBadgeReader,
 } from "@/lib/rankings";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { normalizeTagQueryValue } from "@/lib/tags";
 import {
   fetchVoteSummaryMapForPosts,
   getVoteSummary,
   type SupabaseVotesReader,
 } from "@/lib/votes";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 20;
 
-type FeedPageProps = {
-  searchParams: Promise<{ page?: string }>;
+type SearchPageProps = {
+  searchParams: Promise<{ q?: string; tag?: string; page?: string }>;
 };
 
 /**
- * URL query의 page 값을 안전한 숫자(1 이상)로 변환합니다.
+ * URL query의 page 값을 1 이상의 정수로 안전하게 변환합니다.
  */
 function toPage(value: string | undefined) {
   const parsed = Number.parseInt(value ?? "1", 10);
@@ -35,7 +36,20 @@ function toPage(value: string | undefined) {
 }
 
 /**
- * 게시글 목록을 불러올 때 필요한 페이지 범위를 계산합니다.
+ * keyword query를 trim하고 과도하게 긴 입력은 잘라서 검색 안정성을 높입니다.
+ */
+function normalizeKeyword(value: string | undefined) {
+  const keyword = value?.trim() ?? "";
+
+  if (!keyword) {
+    return "";
+  }
+
+  return keyword.slice(0, 100);
+}
+
+/**
+ * 페이지 기반 조회에서 필요한 range(from, to)를 계산합니다.
  */
 function toRange(page: number) {
   const from = (page - 1) * PAGE_SIZE;
@@ -45,7 +59,34 @@ function toRange(page: number) {
 }
 
 /**
- * 이미지 key가 있으면 서명 URL을 우선 사용해 안정적인 미리보기를 만듭니다.
+ * 검색 더보기 링크를 만들기 위해 q/tag/page를 query string으로 직렬화합니다.
+ */
+function buildSearchHref({
+  q,
+  tag,
+  page,
+}: {
+  q: string;
+  tag: string | null;
+  page: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (q) {
+    params.set("q", q);
+  }
+
+  if (tag) {
+    params.set("tag", tag);
+  }
+
+  params.set("page", String(page));
+
+  return `/search?${params.toString()}`;
+}
+
+/**
+ * image_key가 있는 게시글은 서명 URL을 우선 사용해 안정적인 미리보기를 만듭니다.
  */
 async function resolveDisplayImageUrl(post: PostRow) {
   if (!post.image_key) {
@@ -60,23 +101,34 @@ async function resolveDisplayImageUrl(post: PostRow) {
 }
 
 /**
- * 최신순 게시글과 좋아요/주간뱃지를 페이지 단위로 조회해 렌더링합니다.
+ * /search 페이지에서 키워드/태그 조합으로 posts를 조회해 카드 목록으로 렌더링합니다.
  */
-export default async function FeedPage({ searchParams }: FeedPageProps) {
-  const { page: pageQuery } = await searchParams;
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const { q: qQuery, tag: tagQuery, page: pageQuery } = await searchParams;
+  const q = normalizeKeyword(qQuery);
+  const tag = normalizeTagQueryValue(tagQuery);
   const page = toPage(pageQuery);
   const { from, to } = toRange(page);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
     .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
-    .is("deleted_at", null)
+    .is("deleted_at", null);
+
+  if (q) {
+    query = query.ilike("caption", `%${q}%`);
+  }
+
+  if (tag) {
+    query = query.contains("tags", [tag]);
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
-
   const rows = (data ?? []) as PostRow[];
   const hasMore = rows.length > PAGE_SIZE;
   const items = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
@@ -91,7 +143,6 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     period: "weekly",
     postIds,
   });
-
   const cards = await Promise.all(
     items.map(async (post) => {
       const voteSummary = getVoteSummary(voteSummaryMap, post.id);
@@ -108,20 +159,21 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   );
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageTitle
-        title="Feed"
-        description="최신순으로 올라온 코디를 확인하고, 마음에 드는 스타일을 둘러보세요."
+        title="Search"
+        description="키워드와 태그로 원하는 코디를 빠르게 찾아보세요."
       />
-      <SearchForm />
+
+      <SearchForm defaultQuery={q} activeTag={tag} />
 
       {error ? (
         <section className="danga-panel p-5 text-sm text-rose-700">
-          피드를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+          검색 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
         </section>
       ) : cards.length === 0 ? (
         <section className="danga-panel p-5 text-sm text-slate-600">
-          아직 게시글이 없습니다. 첫 게시글을 올려보세요.
+          조건에 맞는 게시글이 없습니다. 다른 검색어 또는 태그를 시도해주세요.
         </section>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -145,9 +197,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       )}
 
       {hasMore ? (
-        <div className="mt-8 flex justify-center">
+        <div className="flex justify-center">
           <Link
-            href={`/feed?page=${page + 1}`}
+            href={buildSearchHref({ q, tag, page: page + 1 })}
             className="rounded-full border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             더보기

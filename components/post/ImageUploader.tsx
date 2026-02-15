@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  MAX_POST_TAGS,
+  parseTagInput,
+  validatePostTags,
+} from "@/lib/tags";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -103,6 +108,7 @@ export function ImageUploader() {
   const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
@@ -117,6 +123,7 @@ export function ImageUploader() {
     setSignedPreviewUrl(null);
     setUploadedKey(null);
     setCaption("");
+    setTagsInput("");
     setErrorMessage(null);
     setCopyMessage(null);
   }
@@ -213,6 +220,14 @@ export function ImageUploader() {
       return;
     }
 
+    const parsedTags = parseTagInput(tagsInput);
+    const tagValidationError = validatePostTags(parsedTags);
+
+    if (tagValidationError) {
+      setErrorMessage(tagValidationError);
+      return;
+    }
+
     try {
       setIsSubmittingPost(true);
 
@@ -225,6 +240,7 @@ export function ImageUploader() {
           imageUrl: uploadedUrl,
           imageKey: uploadedKey,
           caption,
+          tags: parsedTags,
         }),
       });
       const result = await readCreatePostResponse(response);
@@ -247,6 +263,8 @@ export function ImageUploader() {
       setIsSubmittingPost(false);
     }
   }
+
+  const parsedTags = parseTagInput(tagsInput);
 
   return (
     <section className="danga-panel space-y-4 p-5">
@@ -348,6 +366,32 @@ export function ImageUploader() {
               placeholder="코디 설명을 입력해주세요."
               className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
             />
+            <label htmlFor="post-tags" className="text-sm font-semibold text-slate-700">
+              태그
+            </label>
+            <input
+              id="post-tags"
+              type="text"
+              value={tagsInput}
+              onChange={(event) => setTagsInput(event.target.value)}
+              placeholder="#미니멀 #스트릿 또는 미니멀, 스트릿"
+              className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
+            />
+            <p className="text-xs text-slate-500">
+              공백/쉼표 기준으로 최대 {MAX_POST_TAGS}개까지 저장됩니다.
+            </p>
+            {parsedTags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {parsedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-[var(--line)] bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <button
               type="button"
               disabled={isUploading || isSubmittingPost}

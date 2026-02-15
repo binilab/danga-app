@@ -76,7 +76,7 @@ export default async function RankPage({ searchParams }: RankPageProps) {
 
   const { data: postData, error: postError } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
     .in("id", postIds)
     .is("deleted_at", null);
 

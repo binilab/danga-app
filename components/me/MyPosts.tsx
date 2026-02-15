@@ -4,6 +4,7 @@ export type MyPostItem = {
   id: string;
   imageUrl: string;
   caption: string;
+  tags: string[] | null;
   createdAt: string;
   authorLabel: string;
   voteCount: number;
@@ -37,6 +38,7 @@ export function MyPosts({ items, isLoggedIn }: MyPostsProps) {
           href={`/p/${item.id}`}
           imageUrl={item.imageUrl}
           caption={item.caption}
+          tags={item.tags}
           createdAt={item.createdAt}
           authorLabel={item.authorLabel}
           voteCount={item.voteCount}

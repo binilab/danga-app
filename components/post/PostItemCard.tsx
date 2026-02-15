@@ -11,6 +11,7 @@ type PostItemCardProps = {
   id: string;
   imageUrl: string;
   caption: string;
+  tags?: string[] | null;
   createdAt: string;
   authorLabel: string;
   voteCount: number;
@@ -65,6 +66,7 @@ export function PostItemCard({
   id,
   imageUrl,
   caption,
+  tags = [],
   createdAt,
   authorLabel,
   voteCount,
@@ -74,10 +76,24 @@ export function PostItemCard({
   href,
 }: PostItemCardProps) {
   const badgeLabel = formatRankingBadgeLabel(badge);
+  const normalizedTags = (tags ?? []).filter((tag) => tag.trim().length > 0);
 
   return (
     <article className="danga-panel h-full p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
       <PostMainContent href={href} imageUrl={imageUrl} caption={caption} />
+      {normalizedTags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {normalizedTags.map((tag) => (
+            <Link
+              key={`${id}-${tag}`}
+              href={`/search?tag=${encodeURIComponent(tag)}`}
+              className="rounded-full border border-[var(--line)] bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+            >
+              #{tag}
+            </Link>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-3 flex items-start justify-between gap-3">
         <div className="text-xs text-slate-500">
           <p>@{authorLabel}</p>

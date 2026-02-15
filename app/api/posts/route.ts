@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { logDevError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { normalizeTagsFromUnknown, validatePostTags } from "@/lib/tags";
 
 export const runtime = "nodejs";
 
@@ -8,6 +9,7 @@ type CreatePostPayload = {
   imageUrl?: string;
   imageKey?: string | null;
   caption?: string;
+  tags?: unknown;
 };
 
 /**
@@ -17,6 +19,7 @@ function validateCreatePayload(payload: CreatePostPayload) {
   const imageUrl = payload.imageUrl?.trim();
   const imageKey = payload.imageKey?.trim() ?? null;
   const caption = payload.caption?.trim();
+  const tags = normalizeTagsFromUnknown(payload.tags);
 
   if (!imageUrl) {
     return { ok: false as const, message: "이미지 URL이 비어 있습니다." };
@@ -30,12 +33,19 @@ function validateCreatePayload(payload: CreatePostPayload) {
     return { ok: false as const, message: "캡션은 500자 이하로 작성해주세요." };
   }
 
+  const tagValidationError = validatePostTags(tags);
+
+  if (tagValidationError) {
+    return { ok: false as const, message: tagValidationError };
+  }
+
   return {
     ok: true as const,
     value: {
       imageUrl,
       imageKey,
       caption,
+      tags,
     },
   };
 }
@@ -71,6 +81,7 @@ export async function POST(request: Request) {
         image_url: validated.value.imageUrl,
         image_key: validated.value.imageKey,
         caption: validated.value.caption,
+        tags: validated.value.tags,
       })
       .select("id")
       .single();

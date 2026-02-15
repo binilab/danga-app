@@ -155,7 +155,7 @@ async function fetchMyPostsData({
   const { from, to } = toRange(page);
   const { data, error } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
     .eq("user_id", userId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -189,6 +189,7 @@ async function fetchMyPostsData({
         id: post.id,
         imageUrl: displayImageMap.get(post.id) ?? post.image_url,
         caption: post.caption,
+        tags: post.tags,
         createdAt: post.created_at,
         authorLabel: toAuthorLabel(post.user_id),
         voteCount: voteSummary.count,
@@ -231,7 +232,7 @@ async function fetchMyLikesData({
 
   const { data: postData, error: postError } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
     .in("id", postIds)
     .is("deleted_at", null);
 
@@ -296,7 +297,7 @@ async function fetchMyCommentsData({
 
   const { data: postData, error: postError } = await supabase
     .from("posts")
-    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .select("id, user_id, image_url, image_key, caption, tags, created_at, deleted_at")
     .in("id", postIds)
     .is("deleted_at", null);
 
