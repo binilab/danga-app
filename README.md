@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 + 신고/Admin + 암호화 유틸 + 런칭 품질(Part 13)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 댓글 + 랭킹 + 마이페이지 + 신고/Admin + 인앱 알림 + 암호화 유틸 + 런칭 품질까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -22,7 +22,7 @@
 - posts 작성/피드/상세
 - votes 토글(optimistic UI)
 
-### Part 8~13 (현재)
+### Part 8~14 (현재)
 - `/rank` 주간/월간 탭 UI
 - 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
 - Top 50 (rank asc)
@@ -69,6 +69,13 @@
   - `robots.txt`, `sitemap.xml` 제공
   - 정책 페이지(`/privacy`, `/terms`, `/contact`) + 공통 Footer 링크
   - feed 썸네일 `next/image` 최적화
+- 인앱 알림(Part 14)
+  - 좋아요 생성 성공 시 `notify_vote` RPC 호출
+  - 댓글 생성 성공 시 `notify_comment` RPC 호출
+  - 헤더 우측 알림 아이콘 + unread count 표시(로그인 사용자만)
+  - `/notifications` 페이지에서 최신순 목록 확인
+  - 알림 클릭 시 읽음 처리 후 게시글 상세(`/p/[id]`) 이동
+  - `모두 읽음` 일괄 처리 지원
 
 ## 실행 방법
 ```bash
@@ -104,15 +111,20 @@ R2_PUBLIC_BASE_URL=...
    - `docs/sql/profiles.sql`
    - `docs/sql/posts.sql`
    - `docs/sql/votes.sql`
+   - `docs/sql/notifications.sql`
    - `docs/sql/reports.sql`
    - `docs/sql/profiles_encryption.sql` (Part 12 선택)
 2. 랭킹 뷰 생성
    - `weekly_post_rankings`
    - `monthly_post_rankings`
    - SQL은 `docs/1.md` Part 8 섹션 참고
-3. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
-4. Auth Redirect URL에 `/auth/callback` 경로 등록
-5. Cloudflare R2 버킷과 Public Base URL 설정
+3. 알림 테이블/RPC 생성(Part 14)
+   - `notifications` 테이블 + RLS
+   - `notify_vote`, `notify_comment` RPC
+   - SQL은 `docs/1.md` Part 14 섹션 참고
+4. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
+5. Auth Redirect URL에 `/auth/callback` 경로 등록
+6. Cloudflare R2 버킷과 Public Base URL 설정
 
 ## 폴더 구조
 ```text
@@ -129,6 +141,7 @@ app/
   feed/page.tsx
   me/page.tsx
   me/loading.tsx
+  notifications/page.tsx
   opengraph-image.tsx
   p/[id]/page.tsx
   privacy/page.tsx
@@ -170,6 +183,8 @@ components/
     MyLikes.tsx
     MyPosts.tsx
     ProfileEditor.tsx
+  notifications/
+    NotificationList.tsx
   report/
     ReportButton.tsx
     ReportModal.tsx
@@ -183,6 +198,7 @@ lib/
     profileSensitive.ts
   mock.ts
   posts.ts
+  notifications.ts
   r2.ts
   rankings.ts
   reports.ts
@@ -195,12 +211,14 @@ docs/
   1.md
   sql/profiles.sql
   sql/posts.sql
+  sql/notifications.sql
   sql/profiles_encryption.sql
   sql/reports.sql
   sql/votes.sql
   진행사항.md
 supabase/
   migrations/20260216_create_posts.sql
+  migrations/20260216_create_notifications.sql
   migrations/20260216_create_reports_admin.sql
   migrations/20260216_profiles_encryption.sql
   migrations/20260216_profiles_soft_delete.sql

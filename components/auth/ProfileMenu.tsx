@@ -85,6 +85,13 @@ export function ProfileMenu({
           >
             업로드
           </Link>
+          <Link
+            href="/notifications"
+            onClick={() => setIsOpen(false)}
+            className="block rounded-lg px-2 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            알림
+          </Link>
           <button
             type="button"
             onClick={() => {

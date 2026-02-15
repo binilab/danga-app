@@ -44,6 +44,28 @@ async function countVotes(supabase: Awaited<ReturnType<typeof createSupabaseServ
 }
 
 /**
+ * 좋아요 성공 시 게시글 작성자에게 알림을 생성하는 RPC를 호출합니다.
+ */
+async function notifyVoteCreated({
+  supabase,
+  postId,
+  actorId,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  postId: string;
+  actorId: string;
+}) {
+  const { error } = await supabase.rpc("notify_vote", {
+    p_post_id: postId,
+    p_actor_id: actorId,
+  });
+
+  if (error) {
+    logDevError("[votes.notify_vote] failed", { message: error.message, code: error.code });
+  }
+}
+
+/**
  * 공통 처리: 세션 사용자 확인 + payload 검증 결과를 반환합니다.
  */
 async function prepareRequest(request: Request) {
@@ -107,6 +129,14 @@ export async function POST(request: Request) {
         { ok: false, message: "좋아요 저장에 실패했습니다." },
         { status: 500 },
       );
+    }
+
+    if (!error) {
+      await notifyVoteCreated({
+        supabase,
+        postId,
+        actorId: user.id,
+      });
     }
 
     const count = await countVotes(supabase, postId);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validateCommentBody } from "@/lib/comments";
+import { logDevError } from "@/lib/log";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -9,6 +10,31 @@ type CreateCommentBody = {
   postId?: string;
   body?: string;
 };
+
+/**
+ * 댓글 생성 성공 시 게시글 작성자 알림을 만드는 RPC를 호출합니다.
+ */
+async function notifyCommentCreated({
+  supabase,
+  postId,
+  commentId,
+  actorId,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  postId: string;
+  commentId: string;
+  actorId: string;
+}) {
+  const { error } = await supabase.rpc("notify_comment", {
+    p_post_id: postId,
+    p_comment_id: commentId,
+    p_actor_id: actorId,
+  });
+
+  if (error) {
+    logDevError("[comments.notify_comment] failed", { message: error.message, code: error.code });
+  }
+}
 
 /**
  * 댓글 생성 요청 본문(JSON)을 읽고 실패하면 null을 반환합니다.
@@ -96,6 +122,13 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await notifyCommentCreated({
+    supabase,
+    postId: body.postId,
+    commentId: commentData.id,
+    actorId: user.id,
+  });
 
   return NextResponse.json({
     ok: true,

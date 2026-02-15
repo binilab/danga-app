@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ProfileMenu } from "@/components/auth/ProfileMenu";
+import { fetchUnreadNotificationCount } from "@/lib/notifications";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const menuItems = [
@@ -148,6 +149,7 @@ export function Header() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [currentUser, setCurrentUser] = useState<HeaderUser | null>(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const authMessageFromUrl = searchParams.get("authMessage");
   const activeNoticeMessage = noticeMessage ?? authMessageFromUrl;
@@ -173,20 +175,51 @@ export function Header() {
   }, []);
 
   /**
-   * 세션 정보에서 현재 헤더 사용자 상태를 계산하고 반영합니다.
+   * 세션 정보에서 현재 헤더 사용자 상태와 알림 카운트를 계산하고 반영합니다.
    */
   const syncAuthUser = useCallback(
     async (session: Session | null, syncProfile: boolean) => {
       if (!session) {
         setCurrentUser(null);
+        setUnreadNotificationCount(0);
         return;
       }
 
       const resolved = await resolveHeaderUser(session, syncProfile, setNoticeMessage);
       setCurrentUser(resolved);
+
+      const count = await fetchUnreadNotificationCount({
+        supabase,
+        userId: resolved.id,
+      });
+
+      if (count !== null) {
+        setUnreadNotificationCount(count);
+      }
     },
-    [],
+    [supabase],
   );
+
+  /**
+   * 현재 로그인 사용자의 미확인 알림 수를 다시 계산합니다.
+   */
+  const refreshUnreadNotificationCount = useCallback(async () => {
+    const userId = currentUser?.id ?? null;
+
+    if (!userId) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    const count = await fetchUnreadNotificationCount({
+      supabase,
+      userId,
+    });
+
+    if (count !== null) {
+      setUnreadNotificationCount(count);
+    }
+  }, [currentUser?.id, supabase]);
 
   /**
    * 페이지 URL에 인증 에러 메시지가 있으면 토스트로 보여준 뒤 URL에서 제거합니다.
@@ -252,6 +285,7 @@ export function Header() {
 
       if (event === "SIGNED_OUT") {
         setCurrentUser(null);
+        setUnreadNotificationCount(0);
       }
     });
 
@@ -320,6 +354,21 @@ export function Header() {
   }, [supabase, syncAuthUser]);
 
   /**
+   * 알림 페이지 읽음 처리 후 전송되는 이벤트를 받아 헤더 카운트를 즉시 갱신합니다.
+   */
+  useEffect(() => {
+    const handleRefreshNotifications = () => {
+      void refreshUnreadNotificationCount();
+    };
+
+    window.addEventListener("danga:notifications-updated", handleRefreshNotifications);
+
+    return () => {
+      window.removeEventListener("danga:notifications-updated", handleRefreshNotifications);
+    };
+  }, [refreshUnreadNotificationCount]);
+
+  /**
    * 로그아웃 요청을 보내고 세션 종료 후 랜딩 페이지로 이동합니다.
    */
   const handleSignOut = useCallback(async () => {
@@ -378,12 +427,38 @@ export function Header() {
               세션 확인중
             </div>
           ) : currentUser ? (
-            <ProfileMenu
-              nickname={currentUser.nickname}
-              avatarUrl={currentUser.avatarUrl}
-              onSignOut={handleSignOut}
-              isSigningOut={isSigningOut}
-            />
+            <div className="order-2 flex items-center gap-2 sm:order-3">
+              <Link
+                href="/notifications"
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-white text-slate-700 transition hover:bg-slate-50"
+                aria-label="알림 페이지로 이동"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6.5 9.5a5.5 5.5 0 1 1 11 0v5.1l1.6 2.4H4.9l1.6-2.4Z" />
+                  <path d="M10 18.2a2 2 0 0 0 4 0" />
+                </svg>
+                {unreadNotificationCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--brand)] px-1 text-[10px] font-bold text-white">
+                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </span>
+                ) : null}
+              </Link>
+              <ProfileMenu
+                nickname={currentUser.nickname}
+                avatarUrl={currentUser.avatarUrl}
+                onSignOut={handleSignOut}
+                isSigningOut={isSigningOut}
+              />
+            </div>
           ) : (
             <button
               type="button"
