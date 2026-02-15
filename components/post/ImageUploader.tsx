@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -18,6 +19,18 @@ type UploadFailure = {
 };
 
 type UploadResponse = UploadSuccess | UploadFailure;
+
+type CreatePostSuccess = {
+  ok: true;
+  id: string;
+};
+
+type CreatePostFailure = {
+  ok: false;
+  message: string;
+};
+
+type CreatePostResponse = CreatePostSuccess | CreatePostFailure;
 
 /**
  * 바이트 값을 사람이 읽기 쉬운 MB 단위 문자열로 변환합니다.
@@ -68,14 +81,28 @@ async function readUploadResponse(response: Response) {
 }
 
 /**
- * /post/new 페이지에서 사용하는 R2 이미지 업로더 UI 컴포넌트입니다.
+ * 게시글 생성 API 응답을 JSON 형태로 읽습니다.
+ */
+async function readCreatePostResponse(response: Response) {
+  try {
+    return (await response.json()) as CreatePostResponse;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * /post/new 페이지에서 사용하는 이미지 업로드 + 게시글 작성 컴포넌트입니다.
  */
 export function ImageUploader() {
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
@@ -89,6 +116,7 @@ export function ImageUploader() {
     setUploadedUrl(null);
     setSignedPreviewUrl(null);
     setUploadedKey(null);
+    setCaption("");
     setErrorMessage(null);
     setCopyMessage(null);
   }
@@ -169,6 +197,57 @@ export function ImageUploader() {
     }
   }
 
+  /**
+   * 업로드된 이미지 URL과 캡션을 posts 테이블에 저장하고 피드로 이동합니다.
+   */
+  async function handleCreatePost() {
+    setErrorMessage(null);
+
+    if (!uploadedUrl) {
+      setErrorMessage("먼저 이미지를 업로드해주세요.");
+      return;
+    }
+
+    if (!caption.trim()) {
+      setErrorMessage("캡션을 입력해주세요.");
+      return;
+    }
+
+    try {
+      setIsSubmittingPost(true);
+
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: uploadedUrl,
+          imageKey: uploadedKey,
+          caption,
+        }),
+      });
+      const result = await readCreatePostResponse(response);
+
+      if (!response.ok || !result?.ok) {
+        const message =
+          result && "message" in result
+            ? result.message
+            : "게시글 등록에 실패했습니다. 잠시 후 다시 시도해주세요.";
+
+        setErrorMessage(message);
+        return;
+      }
+
+      router.push("/feed");
+      router.refresh();
+    } catch {
+      setErrorMessage("게시글 저장 중 네트워크 오류가 발생했습니다.");
+    } finally {
+      setIsSubmittingPost(false);
+    }
+  }
+
   return (
     <section className="danga-panel space-y-4 p-5">
       <div>
@@ -194,7 +273,7 @@ export function ImageUploader() {
 
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || isSubmittingPost}
           onClick={() => {
             void handleUpload();
           }}
@@ -252,6 +331,33 @@ export function ImageUploader() {
               URL 복사
             </button>
             {copyMessage ? <p className="text-xs text-slate-500">{copyMessage}</p> : null}
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="post-caption"
+              className="text-sm font-semibold text-slate-700"
+            >
+              캡션
+            </label>
+            <textarea
+              id="post-caption"
+              rows={4}
+              value={caption}
+              onChange={(event) => setCaption(event.target.value)}
+              placeholder="코디 설명을 입력해주세요."
+              className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-[var(--brand)]"
+            />
+            <button
+              type="button"
+              disabled={isUploading || isSubmittingPost}
+              onClick={() => {
+                void handleCreatePost();
+              }}
+              className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmittingPost ? "게시글 저장 중..." : "게시글 등록"}
+            </button>
           </div>
         </div>
       ) : null}

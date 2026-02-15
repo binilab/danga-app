@@ -150,6 +150,13 @@ async function createSignedObjectUrl(key: string) {
 }
 
 /**
+ * R2 object key로 GET 서명 URL을 생성합니다. 피드/상세 미리보기에 사용합니다.
+ */
+export async function createSignedReadUrlByKey(key: string) {
+  return createSignedObjectUrl(key);
+}
+
+/**
  * 이미지 파일을 R2 버킷에 업로드하고 공개 URL을 반환합니다.
  */
 export async function uploadImageToR2({

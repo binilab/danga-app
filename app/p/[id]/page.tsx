@@ -1,39 +1,64 @@
 import { notFound } from "next/navigation";
 import { PageTitle } from "@/components/PageTitle";
-import { PostCard } from "@/components/PostCard";
-import { getPostById } from "@/lib/mock";
+import { PostItemCard } from "@/components/post/PostItemCard";
+import { type PostRow, toAuthorLabel } from "@/lib/posts";
+import { createSignedReadUrlByKey } from "@/lib/r2";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type DetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
 /**
- * 게시글 id를 받아 상세 정보를 보여주는 동적 라우트 페이지입니다.
+ * 게시글 레코드에서 화면에 표시할 이미지 URL을 계산합니다.
+ */
+async function resolveDisplayImageUrl(post: PostRow) {
+  if (!post.image_key) {
+    return post.image_url;
+  }
+
+  try {
+    return await createSignedReadUrlByKey(post.image_key);
+  } catch {
+    return post.image_url;
+  }
+}
+
+/**
+ * 게시글 id를 기준으로 posts 단건을 조회해 상세를 보여줍니다.
  */
 export default async function PostDetailPage({ params }: DetailPageProps) {
   const { id } = await params;
-  const post = getPostById(id);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
 
-  if (!post) {
+  if (error || !data) {
     notFound();
   }
+
+  const post = data as PostRow;
+  const displayImageUrl = await resolveDisplayImageUrl(post);
 
   return (
     <div className="space-y-6">
       <PageTitle
-        title={`Post #${post.id}`}
-        description="코디 상세 정보와 반응 지표를 확인하는 화면입니다."
+        title={`Post #${post.id.slice(0, 8)}`}
+        description="게시글 상세 화면입니다. 이후 파트에서 투표/댓글 기능이 연결됩니다."
       />
       <div className="max-w-2xl">
-        <PostCard post={post} />
+        <PostItemCard
+          id={post.id}
+          imageUrl={displayImageUrl}
+          caption={post.caption}
+          createdAt={post.created_at}
+          authorLabel={toAuthorLabel(post.user_id)}
+        />
       </div>
-      <section className="danga-panel max-w-2xl p-5">
-        <h2 className="text-base font-bold text-slate-900">상세 설명</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          실제 댓글/투표/신고 기능은 이후 단계에서 연결됩니다. 현재는 라우팅과
-          화면 구조를 확인하기 위한 뼈대입니다.
-        </p>
-      </section>
     </div>
   );
 }
