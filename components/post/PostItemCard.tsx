@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatPostDate } from "@/lib/posts";
+import { VoteButton } from "@/components/post/VoteButton";
 
 type PostItemCardProps = {
   id: string;
@@ -7,20 +8,26 @@ type PostItemCardProps = {
   caption: string;
   createdAt: string;
   authorLabel: string;
+  voteCount: number;
+  likedByMe: boolean;
+  isLoggedIn: boolean;
   href?: string;
 };
 
 /**
- * 피드/상세에서 공통으로 사용하는 게시글 카드 본문을 렌더링합니다.
+ * 카드 상단 콘텐츠(이미지+캡션)를 링크 유무에 맞게 렌더링합니다.
  */
-function PostItemCardBody({
+function PostMainContent({
+  href,
   imageUrl,
   caption,
-  createdAt,
-  authorLabel,
-}: Omit<PostItemCardProps, "id" | "href">) {
-  return (
-    <article className="danga-panel h-full p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
+}: {
+  href?: string;
+  imageUrl: string;
+  caption: string;
+}) {
+  const content = (
+    <>
       <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-slate-50">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -31,25 +38,49 @@ function PostItemCardBody({
         />
       </div>
       <p className="mt-3 line-clamp-3 text-sm font-medium text-slate-800">{caption}</p>
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-        <span>@{authorLabel}</span>
-        <span>{formatPostDate(createdAt)}</span>
-      </div>
-    </article>
+    </>
+  );
+
+  if (!href) {
+    return content;
+  }
+
+  return (
+    <Link href={href} className="block">
+      {content}
+    </Link>
   );
 }
 
 /**
- * 게시글 링크가 있을 때는 클릭 가능한 카드로, 없으면 일반 카드로 렌더링합니다.
+ * 피드/상세에서 공통으로 사용하는 게시글 카드 컴포넌트입니다.
  */
-export function PostItemCard({ href, ...props }: PostItemCardProps) {
-  if (!href) {
-    return <PostItemCardBody {...props} />;
-  }
-
+export function PostItemCard({
+  id,
+  imageUrl,
+  caption,
+  createdAt,
+  authorLabel,
+  voteCount,
+  likedByMe,
+  isLoggedIn,
+  href,
+}: PostItemCardProps) {
   return (
-    <Link href={href} className="block h-full">
-      <PostItemCardBody {...props} />
-    </Link>
+    <article className="danga-panel h-full p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
+      <PostMainContent href={href} imageUrl={imageUrl} caption={caption} />
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div className="text-xs text-slate-500">
+          <p>@{authorLabel}</p>
+          <p className="mt-1">{formatPostDate(createdAt)}</p>
+        </div>
+        <VoteButton
+          postId={id}
+          initialCount={voteCount}
+          initialLikedByMe={likedByMe}
+          isLoggedIn={isLoggedIn}
+        />
+      </div>
+    </article>
   );
 }

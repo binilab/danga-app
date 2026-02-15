@@ -251,6 +251,28 @@ export function Header() {
   }, [noticeMessage]);
 
   /**
+   * 다른 컴포넌트에서 로그인 모달 오픈 이벤트를 보내면 헤더에서 모달을 엽니다.
+   */
+  useEffect(() => {
+    const handleOpenLogin = (event: Event) => {
+      const custom = event as CustomEvent<{ message?: string }>;
+      const incomingMessage = custom.detail?.message;
+
+      if (incomingMessage) {
+        setNoticeMessage(incomingMessage);
+      }
+
+      setIsAuthModalOpen(true);
+    };
+
+    window.addEventListener("danga:open-login", handleOpenLogin);
+
+    return () => {
+      window.removeEventListener("danga:open-login", handleOpenLogin);
+    };
+  }, []);
+
+  /**
    * 로그아웃 요청을 보내고 세션 종료 후 랜딩 페이지로 이동합니다.
    */
   const handleSignOut = useCallback(async () => {

@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts 작성/피드 조회(Part 5)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes MVP(Part 6)까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -20,18 +20,23 @@
 - Supabase OAuth 로그인 (Google/Kakao UI)
 - R2 이미지 업로드 API + 업로더 UI
 
-### Part 5 posts (현재)
-- Supabase migration 형태로 `posts` 테이블/RLS/인덱스 구성
-  - `supabase/migrations/20260216_create_posts.sql`
-- `/post/new`
-  - 이미지 업로드 후 캡션 입력
-  - `POST /api/posts`로 게시글 저장
-  - 성공 시 `/feed` 이동
+### Part 5 posts
+- `posts` 테이블 soft delete + RLS
+- 게시글 작성(`/post/new`) + 피드(`/feed`) + 상세(`/p/[id]`)
+
+### Part 6 votes MVP (현재)
+- `votes` 테이블을 사용한 좋아요 토글 API
+  - `app/api/votes/route.ts` (`POST`/`DELETE`)
 - `/feed`
-  - 최신순 조회 (`deleted_at is null`)
-  - 20개 로딩 + `더보기` 버튼(page query)
+  - posts 20개 조회 시 post ids 기반으로 votes를 `in()` 한 번에 조회
+  - 각 카드에 좋아요 수 + 내가 눌렀는지 표시
 - `/p/[id]`
-  - posts 단건 조회 후 상세 표시
+  - 단건 조회 + 동일 좋아요 토글
+- 클라이언트 optimistic UI
+  - `hooks/useVote.ts`
+  - 실패 시 원복 + 오류 안내
+- 비로그인 클릭 시
+  - 헤더 로그인 모달 유도(커스텀 이벤트)
 
 ## 실행 방법
 ```bash
@@ -60,10 +65,14 @@ R2_PUBLIC_BASE_URL=...
 ## 사전 설정
 1. Supabase SQL Editor에서 아래 SQL을 순서대로 실행
    - `docs/sql/profiles.sql`
-   - `docs/sql/posts.sql` (또는 migration 파일 내용)
-2. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
-3. Auth Redirect URL에 `/auth/callback` 경로 등록
-4. Cloudflare R2 버킷과 Public Base URL 설정
+   - `docs/sql/posts.sql`
+2. `votes` 테이블은 Part 6 전제대로 준비되어 있어야 함
+   - 컬럼: `post_id`, `voter_id`, `created_at`
+   - 제약: `unique(post_id, voter_id)`
+   - RLS: select all / insert own / delete own
+3. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
+4. Auth Redirect URL에 `/auth/callback` 경로 등록
+5. Cloudflare R2 버킷과 Public Base URL 설정
 
 ## 폴더 구조
 ```text
@@ -71,6 +80,7 @@ app/
   admin/page.tsx
   api/posts/route.ts
   api/upload/route.ts
+  api/votes/route.ts
   auth/callback/route.ts
   feed/page.tsx
   me/page.tsx
@@ -95,10 +105,14 @@ components/
   post/
     ImageUploader.tsx
     PostItemCard.tsx
+    VoteButton.tsx
+hooks/
+  useVote.ts
 lib/
   mock.ts
   posts.ts
   r2.ts
+  votes.ts
   supabase/
     client.ts
     server.ts
@@ -111,6 +125,6 @@ supabase/
 ```
 
 ## 주의 사항
-- soft delete 정책으로 `posts.deleted_at` 컬럼을 사용합니다.
-- 현재 단계에서는 **votes/comments 테이블은 아직 만들지 않습니다.**
+- `posts`는 soft delete(`deleted_at`)를 사용합니다.
+- 현재 단계에서는 **comments 테이블은 아직 만들지 않습니다.**
 - R2 Access Key/Secret은 서버 API에서만 사용하며 클라이언트에 노출되지 않습니다.

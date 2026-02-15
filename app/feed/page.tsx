@@ -3,6 +3,11 @@ import { PageTitle } from "@/components/PageTitle";
 import { PostItemCard } from "@/components/post/PostItemCard";
 import { type PostRow, toAuthorLabel } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
+import {
+  fetchVoteSummaryMapForPosts,
+  getVoteSummary,
+  type SupabaseVotesReader,
+} from "@/lib/votes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 20;
@@ -50,13 +55,16 @@ async function resolveDisplayImageUrl(post: PostRow) {
 }
 
 /**
- * 최신순 게시글 피드를 페이지 단위로 조회해 렌더링합니다.
+ * 최신순 게시글과 좋아요 집계를 페이지 단위로 조회해 렌더링합니다.
  */
 export default async function FeedPage({ searchParams }: FeedPageProps) {
   const { page: pageQuery } = await searchParams;
   const page = toPage(pageQuery);
   const { from, to } = toRange(page);
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from("posts")
     .select("id, user_id, image_url, image_key, caption, created_at, deleted_at")
@@ -67,12 +75,25 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const rows = (data ?? []) as PostRow[];
   const hasMore = rows.length > PAGE_SIZE;
   const items = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  const postIds = items.map((post) => post.id);
+  const voteSummaryMap = await fetchVoteSummaryMapForPosts({
+    supabase: supabase as unknown as SupabaseVotesReader,
+    postIds,
+    viewerId: user?.id ?? null,
+  });
+
   const cards = await Promise.all(
-    items.map(async (post) => ({
-      ...post,
-      displayImageUrl: await resolveDisplayImageUrl(post),
-      authorLabel: toAuthorLabel(post.user_id),
-    })),
+    items.map(async (post) => {
+      const voteSummary = getVoteSummary(voteSummaryMap, post.id);
+
+      return {
+        ...post,
+        displayImageUrl: await resolveDisplayImageUrl(post),
+        authorLabel: toAuthorLabel(post.user_id),
+        voteCount: voteSummary.count,
+        likedByMe: voteSummary.likedByMe,
+      };
+    }),
   );
 
   return (
@@ -101,6 +122,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
               caption={post.caption}
               createdAt={post.created_at}
               authorLabel={post.authorLabel}
+              voteCount={post.voteCount}
+              likedByMe={post.likedByMe}
+              isLoggedIn={Boolean(user)}
             />
           ))}
         </div>
