@@ -141,6 +141,7 @@ export async function POST(request: Request) {
       ok: true,
       key: uploaded.key,
       url: uploaded.url,
+      signedUrl: uploaded.signedUrl,
     });
   } catch (error) {
     const mapped = toUploadApiError(error);

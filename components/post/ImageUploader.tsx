@@ -9,6 +9,7 @@ type UploadSuccess = {
   ok: true;
   key: string;
   url: string;
+  signedUrl: string;
 };
 
 type UploadFailure = {
@@ -73,6 +74,7 @@ export function ImageUploader() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export function ImageUploader() {
 
     setSelectedFile(file);
     setUploadedUrl(null);
+    setSignedPreviewUrl(null);
     setUploadedKey(null);
     setErrorMessage(null);
     setCopyMessage(null);
@@ -139,6 +142,7 @@ export function ImageUploader() {
       }
 
       setUploadedUrl(result.url);
+      setSignedPreviewUrl(result.signedUrl);
       setUploadedKey(result.key);
     } catch {
       setErrorMessage("네트워크 오류로 업로드에 실패했습니다. 연결 상태를 확인해주세요.");
@@ -151,12 +155,14 @@ export function ImageUploader() {
    * 업로드가 끝난 URL을 클립보드에 복사하고 결과 문구를 표시합니다.
    */
   async function handleCopyUrl() {
-    if (!uploadedUrl) {
+    const copyTarget = signedPreviewUrl ?? uploadedUrl;
+
+    if (!copyTarget) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(uploadedUrl);
+      await navigator.clipboard.writeText(copyTarget);
       setCopyMessage("URL을 복사했습니다.");
     } catch {
       setCopyMessage("복사에 실패했습니다. URL을 직접 선택해 복사해주세요.");
@@ -211,7 +217,7 @@ export function ImageUploader() {
           <div className="overflow-hidden rounded-lg border border-[var(--line)] bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={uploadedUrl}
+              src={signedPreviewUrl ?? uploadedUrl}
               alt="업로드된 이미지 미리보기"
               className="h-auto max-h-80 w-full object-contain"
             />
@@ -226,6 +232,16 @@ export function ImageUploader() {
             <div className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-xs text-slate-700 break-all">
               {uploadedUrl}
             </div>
+            {signedPreviewUrl && signedPreviewUrl !== uploadedUrl ? (
+              <>
+                <p className="text-xs font-semibold text-slate-600">
+                  임시 미리보기 URL (1시간)
+                </p>
+                <div className="rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-xs text-slate-700 break-all">
+                  {signedPreviewUrl}
+                </div>
+              </>
+            ) : null}
             <button
               type="button"
               onClick={() => {

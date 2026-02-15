@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type UploadImageInput = {
   body: Buffer;
@@ -11,6 +12,7 @@ type UploadImageInput = {
 type UploadImageResult = {
   key: string;
   url: string;
+  signedUrl: string;
 };
 
 export const ALLOWED_IMAGE_MIME_TYPES = [
@@ -39,9 +41,9 @@ function getR2Env() {
   const bucketName = process.env.R2_BUCKET_NAME;
   const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL;
 
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicBaseUrl) {
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
     throw new Error(
-      "R2 환경 변수가 비어 있습니다. R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_BASE_URL를 확인해주세요.",
+      "R2 환경 변수가 비어 있습니다. R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME를 확인해주세요.",
     );
   }
 
@@ -50,7 +52,7 @@ function getR2Env() {
     accessKeyId,
     secretAccessKey,
     bucketName,
-    publicBaseUrl: publicBaseUrl.replace(/\/$/, ""),
+    publicBaseUrl: publicBaseUrl ? publicBaseUrl.replace(/\/$/, "") : null,
   };
 }
 
@@ -134,6 +136,20 @@ function createPostImageKey(userId: string, extension: string) {
 }
 
 /**
+ * 커스텀 도메인이 없을 때도 확인 가능한 임시 서명 URL(GET, 1시간)을 생성합니다.
+ */
+async function createSignedObjectUrl(key: string) {
+  const env = getR2Env();
+  const client = getR2Client();
+  const command = new GetObjectCommand({
+    Bucket: env.bucketName,
+    Key: key,
+  });
+
+  return getSignedUrl(client, command, { expiresIn: 60 * 60 });
+}
+
+/**
  * 이미지 파일을 R2 버킷에 업로드하고 공개 URL을 반환합니다.
  */
 export async function uploadImageToR2({
@@ -155,9 +171,11 @@ export async function uploadImageToR2({
   });
 
   await client.send(command);
+  const signedUrl = await createSignedObjectUrl(key);
 
   return {
     key,
-    url: `${env.publicBaseUrl}/${key}`,
+    url: env.publicBaseUrl ? `${env.publicBaseUrl}/${key}` : signedUrl,
+    signedUrl,
   };
 }
