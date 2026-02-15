@@ -4,6 +4,10 @@ import { PostItemCard } from "@/components/post/PostItemCard";
 import { type PostRow, toAuthorLabel } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
+  fetchRankingBadgeMapForPosts,
+  type SupabaseRankingBadgeReader,
+} from "@/lib/rankings";
+import {
   fetchVoteSummaryMapForPosts,
   getVoteSummary,
   type SupabaseVotesReader,
@@ -57,6 +61,11 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
     viewerId: user?.id ?? null,
   });
   const voteSummary = getVoteSummary(voteSummaryMap, post.id);
+  const badgeMap = await fetchRankingBadgeMapForPosts({
+    supabase: supabase as unknown as SupabaseRankingBadgeReader,
+    period: "weekly",
+    postIds: [post.id],
+  });
 
   return (
     <div className="space-y-6">
@@ -74,6 +83,7 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
           voteCount={voteSummary.count}
           likedByMe={voteSummary.likedByMe}
           isLoggedIn={Boolean(user)}
+          badge={badgeMap.get(post.id) ?? null}
         />
       </div>
     </div>

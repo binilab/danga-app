@@ -4,6 +4,10 @@ import { PostItemCard } from "@/components/post/PostItemCard";
 import { type PostRow, toAuthorLabel } from "@/lib/posts";
 import { createSignedReadUrlByKey } from "@/lib/r2";
 import {
+  fetchRankingBadgeMapForPosts,
+  type SupabaseRankingBadgeReader,
+} from "@/lib/rankings";
+import {
   fetchVoteSummaryMapForPosts,
   getVoteSummary,
   type SupabaseVotesReader,
@@ -55,7 +59,7 @@ async function resolveDisplayImageUrl(post: PostRow) {
 }
 
 /**
- * 최신순 게시글과 좋아요 집계를 페이지 단위로 조회해 렌더링합니다.
+ * 최신순 게시글과 좋아요/주간뱃지를 페이지 단위로 조회해 렌더링합니다.
  */
 export default async function FeedPage({ searchParams }: FeedPageProps) {
   const { page: pageQuery } = await searchParams;
@@ -81,6 +85,11 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     postIds,
     viewerId: user?.id ?? null,
   });
+  const weeklyBadgeMap = await fetchRankingBadgeMapForPosts({
+    supabase: supabase as unknown as SupabaseRankingBadgeReader,
+    period: "weekly",
+    postIds,
+  });
 
   const cards = await Promise.all(
     items.map(async (post) => {
@@ -92,6 +101,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         authorLabel: toAuthorLabel(post.user_id),
         voteCount: voteSummary.count,
         likedByMe: voteSummary.likedByMe,
+        badge: weeklyBadgeMap.get(post.id) ?? null,
       };
     }),
   );
@@ -125,6 +135,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
               voteCount={post.voteCount}
               likedByMe={post.likedByMe}
               isLoggedIn={Boolean(user)}
+              badge={post.badge}
             />
           ))}
         </div>

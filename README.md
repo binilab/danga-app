@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes MVP(Part 6)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 랭킹(Part 8)까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -15,28 +15,26 @@
 - Cloudflare R2 (S3 호환 API)
 
 ## 구현 상태
-### Part 1~4
+### Part 1~7
 - 기본 라우트/랜딩 UI/헤더 로그인 상태
 - Supabase OAuth 로그인 (Google/Kakao UI)
 - R2 이미지 업로드 API + 업로더 UI
+- posts 작성/피드/상세
+- votes 토글(optimistic UI)
 
-### Part 5 posts
-- `posts` 테이블 soft delete + RLS
-- 게시글 작성(`/post/new`) + 피드(`/feed`) + 상세(`/p/[id]`)
-
-### Part 6 votes MVP (현재)
-- `votes` 테이블을 사용한 좋아요 토글 API
-  - `app/api/votes/route.ts` (`POST`/`DELETE`)
-- `/feed`
-  - posts 20개 조회 시 post ids 기반으로 votes를 `in()` 한 번에 조회
-  - 각 카드에 좋아요 수 + 내가 눌렀는지 표시
-- `/p/[id]`
-  - 단건 조회 + 동일 좋아요 토글
-- 클라이언트 optimistic UI
-  - `hooks/useVote.ts`
-  - 실패 시 원복 + 오류 안내
-- 비로그인 클릭 시
-  - 헤더 로그인 모달 유도(커스텀 이벤트)
+### Part 8 랭킹 + 뱃지 (현재)
+- `/rank` 주간/월간 탭 UI
+- 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
+- Top 50 (rank asc)
+- ranking -> posts -> profiles 순으로 일괄 조회(in 쿼리)하여 N+1 방지
+- 랭킹 카드 정보
+  - rank number
+  - badge pill
+  - score
+  - thumbnail
+  - 작성자 nickname/avatar
+- 카드 클릭 시 `/p/[id]` 이동
+- (선택사항) `/feed` 및 `/p/[id]` 카드에 주간 뱃지 표시
 
 ## 실행 방법
 ```bash
@@ -66,10 +64,11 @@ R2_PUBLIC_BASE_URL=...
 1. Supabase SQL Editor에서 아래 SQL을 순서대로 실행
    - `docs/sql/profiles.sql`
    - `docs/sql/posts.sql`
-2. `votes` 테이블은 Part 6 전제대로 준비되어 있어야 함
-   - 컬럼: `post_id`, `voter_id`, `created_at`
-   - 제약: `unique(post_id, voter_id)`
-   - RLS: select all / insert own / delete own
+   - `docs/sql/votes.sql`
+2. 랭킹 뷰 생성
+   - `weekly_post_rankings`
+   - `monthly_post_rankings`
+   - SQL은 `docs/1.md` Part 8 섹션 참고
 3. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
 4. Auth Redirect URL에 `/auth/callback` 경로 등록
 5. Cloudflare R2 버킷과 Public Base URL 설정
@@ -112,19 +111,23 @@ lib/
   mock.ts
   posts.ts
   r2.ts
+  rankings.ts
   votes.ts
   supabase/
     client.ts
     server.ts
 docs/
+  1.md
   sql/profiles.sql
   sql/posts.sql
+  sql/votes.sql
   진행사항.md
 supabase/
   migrations/20260216_create_posts.sql
+  migrations/20260216_create_votes.sql
 ```
 
 ## 주의 사항
 - `posts`는 soft delete(`deleted_at`)를 사용합니다.
-- 현재 단계에서는 **comments 테이블은 아직 만들지 않습니다.**
+- 현재 단계에서는 **comments 고도화(신고/정렬/통계)는 아직 미구현**입니다.
 - R2 Access Key/Secret은 서버 API에서만 사용하며 클라이언트에 노출되지 않습니다.

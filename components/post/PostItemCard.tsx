@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { formatPostDate } from "@/lib/posts";
+import {
+  formatRankingBadgeLabel,
+  getRankingBadgeClass,
+} from "@/lib/rankings";
 import { VoteButton } from "@/components/post/VoteButton";
 
 type PostItemCardProps = {
@@ -11,6 +15,7 @@ type PostItemCardProps = {
   voteCount: number;
   likedByMe: boolean;
   isLoggedIn: boolean;
+  badge?: string | null;
   href?: string;
 };
 
@@ -64,8 +69,11 @@ export function PostItemCard({
   voteCount,
   likedByMe,
   isLoggedIn,
+  badge = null,
   href,
 }: PostItemCardProps) {
+  const badgeLabel = formatRankingBadgeLabel(badge);
+
   return (
     <article className="danga-panel h-full p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
       <PostMainContent href={href} imageUrl={imageUrl} caption={caption} />
@@ -73,6 +81,13 @@ export function PostItemCard({
         <div className="text-xs text-slate-500">
           <p>@{authorLabel}</p>
           <p className="mt-1">{formatPostDate(createdAt)}</p>
+          {badgeLabel ? (
+            <span
+              className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-bold ${getRankingBadgeClass(badge)}`}
+            >
+              {badgeLabel}
+            </span>
+          ) : null}
         </div>
         <VoteButton
           postId={id}
