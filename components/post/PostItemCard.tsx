@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { formatPostDate } from "@/lib/posts";
 import {
   formatRankingBadgeLabel,
@@ -33,13 +34,13 @@ function PostMainContent({
 }) {
   const content = (
     <>
-      <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-slate-50">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative h-48 overflow-hidden rounded-xl border border-[var(--line)] bg-slate-50">
+        <Image
           src={imageUrl}
           alt="업로드된 코디 이미지"
-          className="h-48 w-full object-cover"
-          loading="lazy"
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
       </div>
       <p className="mt-3 line-clamp-3 text-sm font-medium text-slate-800">{caption}</p>

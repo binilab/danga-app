@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { encryptProfileSensitiveFields } from "@/lib/crypto/profileSensitive";
+import { logDevError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -91,11 +92,16 @@ export async function POST() {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "암호화 처리 중 알 수 없는 오류가 발생했습니다.";
+    logDevError("[profiles.encrypted.sync] failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
 
-    return NextResponse.json({ ok: false, message }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "암호화 프로필 동기화 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      },
+      { status: 500 },
+    );
   }
 }

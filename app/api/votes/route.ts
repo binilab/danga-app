@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logDevError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
     });
 
     if (error && error.code !== "23505") {
-      console.error("[votes.insert] failed", { message: error.message, code: error.code });
+      logDevError("[votes.insert] failed", { message: error.message, code: error.code });
 
       return NextResponse.json(
         { ok: false, message: "좋아요 저장에 실패했습니다." },
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, likedByMe: true, count });
   } catch (error) {
-    console.error("[votes.insert] unexpected", {
+    logDevError("[votes.insert] unexpected", {
       message: error instanceof Error ? error.message : String(error),
     });
 
@@ -142,7 +143,7 @@ export async function DELETE(request: Request) {
       .eq("voter_id", user.id);
 
     if (error) {
-      console.error("[votes.delete] failed", { message: error.message, code: error.code });
+      logDevError("[votes.delete] failed", { message: error.message, code: error.code });
 
       return NextResponse.json(
         { ok: false, message: "좋아요 취소에 실패했습니다." },
@@ -154,7 +155,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ ok: true, likedByMe: false, count });
   } catch (error) {
-    console.error("[votes.delete] unexpected", {
+    logDevError("[votes.delete] unexpected", {
       message: error instanceof Error ? error.message : String(error),
     });
 

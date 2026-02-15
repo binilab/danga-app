@@ -1,3 +1,5 @@
+import { logDevError } from "@/lib/log";
+
 export type VoteRow = {
   post_id: string;
   voter_id: string;
@@ -62,7 +64,7 @@ export async function fetchVoteSummaryMapForPosts({
     .in("post_id", postIds);
 
   if (error) {
-    console.error("[votes.fetch] failed", { message: error.message, code: error.code });
+    logDevError("[votes.fetch] failed", { message: error.message, code: error.code });
     return new Map<string, VoteSummary>();
   }
 

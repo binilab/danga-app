@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logDevError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const mapped = toUploadApiError(error);
-    console.error("[upload] failed", {
+    logDevError("[upload] failed", {
       status: mapped.status,
       message: mapped.message,
       raw: error instanceof Error ? error.message : String(error),

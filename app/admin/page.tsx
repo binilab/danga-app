@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PageTitle } from "@/components/PageTitle";
 import { AdminReportsClient } from "@/components/admin/AdminReportsClient";
 import {
@@ -41,6 +42,13 @@ function safeDecryptReporterIdentity(row: ReporterSensitiveRow) {
     };
   }
 }
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 /**
  * /admin 페이지에서 세션/권한 확인 후 신고 관리 화면을 렌더링합니다.

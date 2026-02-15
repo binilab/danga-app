@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 + 신고/Admin + 암호화 유틸(Part 12 선택)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 + 신고/Admin + 암호화 유틸 + 런칭 품질(Part 13)까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -22,7 +22,7 @@
 - posts 작성/피드/상세
 - votes 토글(optimistic UI)
 
-### Part 8~12 (현재)
+### Part 8~13 (현재)
 - `/rank` 주간/월간 탭 UI
 - 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
 - Top 50 (rank asc)
@@ -62,6 +62,13 @@
   - `APP_ENCRYPTION_KEY` 기반 `encrypt/decrypt`
   - profiles 암호화 컬럼(`email_enc`, `name_enc`) 저장
   - admin 화면에서만 복호화 분기 표시
+- 런칭 품질(SEO/성능/정책)
+  - 기본 metadata(title/description/openGraph/twitter) 적용
+  - 공유용 OG/Twitter 이미지 라우트(`opengraph-image`, `twitter-image`) 적용
+  - `/admin` noindex 처리
+  - `robots.txt`, `sitemap.xml` 제공
+  - 정책 페이지(`/privacy`, `/terms`, `/contact`) + 공통 Footer 링크
+  - feed 썸네일 `next/image` 최적화
 
 ## 실행 방법
 ```bash
@@ -118,15 +125,23 @@ app/
   api/upload/route.ts
   api/votes/route.ts
   auth/callback/route.ts
+  contact/page.tsx
   feed/page.tsx
   me/page.tsx
   me/loading.tsx
+  opengraph-image.tsx
   p/[id]/page.tsx
+  privacy/page.tsx
   post/new/page.tsx
   rank/page.tsx
+  robots.ts
+  sitemap.ts
+  terms/page.tsx
+  twitter-image.tsx
   layout.tsx
   page.tsx
 components/
+  Footer.tsx
   Header.tsx
   PageTitle.tsx
   PostCard.tsx
@@ -172,6 +187,7 @@ lib/
   rankings.ts
   reports.ts
   votes.ts
+  log.ts
   supabase/
     client.ts
     server.ts

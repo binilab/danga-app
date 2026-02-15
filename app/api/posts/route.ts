@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logDevError } from "@/lib/log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error("[posts.create] failed", { message: error.message, code: error.code });
+      logDevError("[posts.create] failed", { message: error.message, code: error.code });
 
       return NextResponse.json(
         { ok: false, message: "게시글을 저장하지 못했습니다. 잠시 후 다시 시도해주세요." },
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, id: data.id });
   } catch (error) {
-    console.error("[posts.create] unexpected", {
+    logDevError("[posts.create] unexpected", {
       message: error instanceof Error ? error.message : String(error),
     });
 

@@ -1,3 +1,5 @@
+import { logDevError } from "@/lib/log";
+
 export type RankingPeriod = "weekly" | "monthly";
 
 export type RankingViewRow = {
@@ -95,7 +97,7 @@ export async function fetchRankingBadgeMapForPosts({
     .in("post_id", postIds);
 
   if (error) {
-    console.error("[rankings.badge] failed", { message: error.message, code: error.code });
+    logDevError("[rankings.badge] failed", { message: error.message, code: error.code });
     return new Map<string, string | null>();
   }
 
