@@ -30,6 +30,64 @@ function getFileFromFormData(formData: FormData) {
   return { file };
 }
 
+type UploadApiErrorInfo = {
+  status: number;
+  message: string;
+};
+
+/**
+ * R2/AWS SDK 오류 객체를 사용자 메시지와 HTTP 상태코드로 변환합니다.
+ */
+function toUploadApiError(error: unknown): UploadApiErrorInfo {
+  if (!(error instanceof Error)) {
+    return {
+      status: 500,
+      message: "업로드 중 알 수 없는 오류가 발생했습니다.",
+    };
+  }
+
+  const maybeAwsError = error as Error & {
+    code?: string;
+    Code?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+
+  const code = maybeAwsError.Code ?? maybeAwsError.code ?? error.name;
+  const statusFromMetadata = maybeAwsError.$metadata?.httpStatusCode;
+
+  if (
+    code === "AccessDenied" ||
+    code === "InvalidAccessKeyId" ||
+    code === "SignatureDoesNotMatch" ||
+    statusFromMetadata === 403
+  ) {
+    return {
+      status: 403,
+      message:
+        "R2 접근 권한이 없습니다. R2 API 토큰 권한(Object Read/Write)과 Account/Bucket 설정을 확인해주세요.",
+    };
+  }
+
+  if (code === "NoSuchBucket") {
+    return {
+      status: 500,
+      message: "R2 버킷을 찾을 수 없습니다. R2_BUCKET_NAME 값을 확인해주세요.",
+    };
+  }
+
+  if (error.message.includes("R2 환경 변수가 비어 있습니다")) {
+    return {
+      status: 500,
+      message: error.message,
+    };
+  }
+
+  return {
+    status: 500,
+    message: `업로드 처리 중 서버 오류가 발생했습니다. (${code})`,
+  };
+}
+
 /**
  * 업로드 API: 이미지 파일을 받아 R2에 저장하고 공개 URL을 반환합니다.
  */
@@ -85,17 +143,19 @@ export async function POST(request: Request) {
       url: uploaded.url,
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "업로드 중 알 수 없는 오류가 발생했습니다.";
+    const mapped = toUploadApiError(error);
+    console.error("[upload] failed", {
+      status: mapped.status,
+      message: mapped.message,
+      raw: error instanceof Error ? error.message : String(error),
+    });
 
     return NextResponse.json(
       {
         ok: false,
-        message,
+        message: mapped.message,
       },
-      { status: 500 },
+      { status: mapped.status },
     );
   }
 }

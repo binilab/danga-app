@@ -45,6 +45,28 @@ function validateFile(file: File | null) {
 }
 
 /**
+ * 응답 본문을 JSON 우선으로 읽고 실패하면 텍스트로 대체합니다.
+ */
+async function readUploadResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return (await response.json()) as UploadResponse;
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const text = await response.text();
+    return { ok: false, message: text.slice(0, 160) } satisfies UploadFailure;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * /post/new 페이지에서 사용하는 R2 이미지 업로더 UI 컴포넌트입니다.
  */
 export function ImageUploader() {
@@ -99,15 +121,20 @@ export function ImageUploader() {
         method: "POST",
         body: formData,
       });
-      const result = (await response.json()) as UploadResponse;
+      const result = await readUploadResponse(response);
 
-      if (!response.ok || !result.ok) {
-        const friendlyMessage =
-          "message" in result
+      if (!response.ok) {
+        const fallbackMessage =
+          result && "message" in result
             ? result.message
-            : "업로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
+            : `업로드 서버 오류(${response.status})가 발생했습니다.`;
 
-        setErrorMessage(friendlyMessage);
+        setErrorMessage(fallbackMessage);
+        return;
+      }
+
+      if (!result || !result.ok) {
+        setErrorMessage("업로드 응답을 해석하지 못했습니다. 잠시 후 다시 시도해주세요.");
         return;
       }
 
