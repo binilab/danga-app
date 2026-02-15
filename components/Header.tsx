@@ -273,6 +273,25 @@ export function Header() {
   }, []);
 
   /**
+   * 프로필 편집 이후 헤더 닉네임/아바타를 즉시 갱신할 수 있도록 사용자 상태를 재동기화합니다.
+   */
+  useEffect(() => {
+    const handleRefreshHeaderUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      await syncAuthUser(session, false);
+    };
+
+    window.addEventListener("danga:refresh-header-user", handleRefreshHeaderUser);
+
+    return () => {
+      window.removeEventListener("danga:refresh-header-user", handleRefreshHeaderUser);
+    };
+  }, [supabase, syncAuthUser]);
+
+  /**
    * 로그아웃 요청을 보내고 세션 종료 후 랜딩 페이지로 이동합니다.
    */
   const handleSignOut = useCallback(async () => {

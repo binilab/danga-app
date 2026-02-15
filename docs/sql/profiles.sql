@@ -6,8 +6,14 @@ create table if not exists public.profiles (
   nickname text not null,
   avatar_url text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
+
+comment on column public.profiles.deleted_at is '계정 soft delete 시각';
+
+create index if not exists profiles_deleted_at_idx
+  on public.profiles (deleted_at);
 
 alter table public.profiles enable row level security;
 

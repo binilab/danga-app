@@ -5,7 +5,7 @@
 
 ## 프로젝트 소개
 - 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 랭킹(Part 8)까지 구현되어 있습니다.
+- 현재는 Auth + R2 업로드 + posts + votes + 랭킹 + 마이페이지 고도화(Part 9)까지 구현되어 있습니다.
 
 ## 기술 스택
 - Next.js (App Router)
@@ -22,7 +22,7 @@
 - posts 작성/피드/상세
 - votes 토글(optimistic UI)
 
-### Part 8 랭킹 + 뱃지 (현재)
+### Part 8~9 (현재)
 - `/rank` 주간/월간 탭 UI
 - 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
 - Top 50 (rank asc)
@@ -35,6 +35,16 @@
   - 작성자 nickname/avatar
 - 카드 클릭 시 `/p/[id]` 이동
 - (선택사항) `/feed` 및 `/p/[id]` 카드에 주간 뱃지 표시
+- `/me` 마이페이지 탭
+  - `내 글`(20개 + 더보기)
+  - `내 좋아요`(최대 50개)
+  - `내 댓글`(최대 50개)
+- `/me` 프로필 편집
+  - nickname 수정
+  - avatar_url 텍스트 수정
+- `/me` 계정 탈퇴(soft delete)
+  - `profiles.deleted_at = now()`
+  - 로그아웃 후 `/` 이동
 
 ## 실행 방법
 ```bash
@@ -83,6 +93,7 @@ app/
   auth/callback/route.ts
   feed/page.tsx
   me/page.tsx
+  me/loading.tsx
   p/[id]/page.tsx
   post/new/page.tsx
   rank/page.tsx
@@ -105,6 +116,12 @@ components/
     ImageUploader.tsx
     PostItemCard.tsx
     VoteButton.tsx
+  me/
+    AccountDangerZone.tsx
+    MyComments.tsx
+    MyLikes.tsx
+    MyPosts.tsx
+    ProfileEditor.tsx
 hooks/
   useVote.ts
 lib/
@@ -124,10 +141,12 @@ docs/
   진행사항.md
 supabase/
   migrations/20260216_create_posts.sql
+  migrations/20260216_profiles_soft_delete.sql
   migrations/20260216_create_votes.sql
 ```
 
 ## 주의 사항
 - `posts`는 soft delete(`deleted_at`)를 사용합니다.
+- `profiles`도 soft delete(`deleted_at`)를 사용합니다.
 - 현재 단계에서는 **comments 고도화(신고/정렬/통계)는 아직 미구현**입니다.
 - R2 Access Key/Secret은 서버 API에서만 사용하며 클라이언트에 노출되지 않습니다.
