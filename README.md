@@ -1,262 +1,114 @@
 # DANGA (danga.site)
 
-패션 평가 커뮤니티 **DANGA**의 프론트엔드 프로젝트입니다.  
+패션 평가 커뮤니티 DANGA 프론트엔드 프로젝트입니다.  
 슬로건: **단번에 가자 (나이스 패션이다)**
 
-## 프로젝트 소개
-- 코디를 올리고, 투표와 댓글로 빠르게 평가받는 커뮤니티를 목표로 합니다.
-- 현재는 Auth + R2 업로드 + posts + votes + 댓글 + 랭킹 + 마이페이지 + 신고/Admin + 인앱 알림 + 검색/태그 + 암호화 유틸 + 런칭 품질 + UI 통일 스프린트까지 구현되어 있습니다.
+## MVP 상태
+- 상태: MVP 구현 완료
+- 핵심 플로우: 로그인 -> 이미지 업로드 -> 게시글 작성 -> 피드/상세 -> 좋아요/댓글 -> 랭킹/알림
+- UI 톤: 미니멀 + 빠르고 경쾌한 카피/레이아웃으로 통일
+
+## 주요 기능
+### 사용자 기능
+- 랜딩: 섹션형 소개 + CTA
+- 피드 `/feed`: 최신순 목록, 좋아요 토글, 태그 chip, 검색 진입
+- 상세 `/p/[id]`: 게시글/댓글/신고/좋아요
+- 글쓰기 `/post/new`: R2 업로드 + 캡션/태그 저장
+- 검색 `/search`: 키워드 + 태그 필터, 더보기
+- 랭킹 `/rank`: 주간/월간 탭, Top 50, 배지/점수
+- 마이 `/me`: 내 글/좋아요/댓글, 프로필 수정, 탈퇴(soft delete)
+- 알림 `/notifications`: 좋아요/댓글 알림, 읽음 처리
+
+### 운영 기능
+- 신고 등록(게시글/댓글)
+- 관리자 `/admin`: 권한 체크, 신고 상태 변경, soft delete RPC 실행
+
+### 품질/운영
+- SEO metadata, OG/Twitter
+- `robots.txt`, `sitemap.xml`
+- 정책 페이지 `/privacy`, `/terms`, `/contact`
+- `next/image` 최적화 + remotePatterns
+- 서버 전용 AES-256-GCM 암호화 유틸
 
 ## 기술 스택
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
+- Next.js 16 (App Router)
+- React 19 + TypeScript
+- Tailwind CSS 4
 - Supabase (Auth + Postgres)
-- Cloudflare R2 (S3 호환 API)
+- Cloudflare R2 (S3 호환)
 
-## 구현 상태
-### Part 1~7
-- 기본 라우트/랜딩 UI/헤더 로그인 상태
-- Supabase OAuth 로그인 (Google/Kakao UI)
-- R2 이미지 업로드 API + 업로더 UI
-- posts 작성/피드/상세
-- votes 토글(optimistic UI)
-
-### Part 8~15 (현재)
-- `/rank` 주간/월간 탭 UI
-- 선택 탭 기준 `weekly_post_rankings` / `monthly_post_rankings` 조회
-- Top 50 (rank asc)
-- ranking -> posts -> profiles 순으로 일괄 조회(in 쿼리)하여 N+1 방지
-- 랭킹 카드 정보
-  - rank number
-  - badge pill
-  - score
-  - thumbnail
-  - 작성자 nickname/avatar
-- 카드 클릭 시 `/p/[id]` 이동
-- (선택사항) `/feed` 및 `/p/[id]` 카드에 주간 뱃지 표시
-- `/me` 마이페이지 탭
-  - `내 글`(20개 + 더보기)
-  - `내 좋아요`(최대 50개)
-  - `내 댓글`(최대 50개)
-- `/me` 프로필 편집
-  - nickname 수정
-  - avatar_url 텍스트 수정
-- `/me` 계정 탈퇴(soft delete)
-  - `profiles.deleted_at = now()`
-  - 로그아웃 후 `/` 이동
-- 댓글 MVP
-  - `/p/[id]`에서 댓글 작성 폼 제공
-  - 댓글 등록 후 목록 즉시 반영
-- 신고(Reports) MVP
-  - 게시글/댓글 신고 모달
-  - 중복 신고 방지(unique) 에러 메시지 처리
-- `/admin` 운영 화면
-  - admin 권한(`profiles.role='admin'`) 접근 제어
-  - 신고 리스트(status 필터 + created_at desc)
-  - 신고 상태 변경(status/reviewed_by/reviewed_at/notes)
-  - RPC 기반 숨김 처리
-    - `admin_soft_delete_post`
-    - `admin_soft_delete_comment`
-- AES-256-GCM 암호화(서버 전용)
-  - `APP_ENCRYPTION_KEY` 기반 `encrypt/decrypt`
-  - profiles 암호화 컬럼(`email_enc`, `name_enc`) 저장
-  - admin 화면에서만 복호화 분기 표시
-- 런칭 품질(SEO/성능/정책)
-  - 기본 metadata(title/description/openGraph/twitter) 적용
-  - 공유용 OG/Twitter 이미지 라우트(`opengraph-image`, `twitter-image`) 적용
-  - `/admin` noindex 처리
-  - `robots.txt`, `sitemap.xml` 제공
-  - 정책 페이지(`/privacy`, `/terms`, `/contact`) + 공통 Footer 링크
-  - feed 썸네일 `next/image` 최적화
-- 인앱 알림(Part 14)
-  - 좋아요 생성 성공 시 `notify_vote` RPC 호출
-  - 댓글 생성 성공 시 `notify_comment` RPC 호출
-  - 헤더 우측 알림 아이콘 + unread count 표시(로그인 사용자만)
-  - `/notifications` 페이지에서 최신순 목록 확인
-  - 알림 클릭 시 읽음 처리 후 게시글 상세(`/p/[id]`) 이동
-  - `모두 읽음` 일괄 처리 지원
-- 검색/태그 MVP(Part 15)
-  - `/post/new`에서 태그 입력/파싱(`#`, 공백, 쉼표 기준) 및 `posts.tags(text[])` 저장
-  - `PostCard`에서 태그 chip 표시 + 클릭 시 `/search?tag=...` 이동
-  - `/feed` 상단 검색 입력(Enter)으로 `/search?q=...` 이동
-  - `/search` 페이지에서 `q`(caption ilike) + `tag`(array contains) AND 검색
-  - 최신순 20개 로딩 + 더보기 버튼
-- UI 개선 스프린트
-  - 디자인 토큰(간격/타이포/radius/shadow) 도입
-  - 공통 UI 컴포넌트 추가(`components/ui/*`)
-  - Header/Footer를 `components/layout/*`로 정리
-  - 피드 카드/상세/업로드 화면 가독성 중심으로 리디자인
-  - Empty/Loading/Error 상태를 공통 컴포넌트 기반으로 통일
-  - 카피 톤을 `단번에/바로/한 번에` 느낌으로 정리
-
-## 실행 방법
+## 빠른 시작
 ```bash
 npm install
 npm run dev
 ```
 
-브라우저에서 `http://localhost:3000` 접속 후 확인합니다.
+로컬 주소: `http://localhost:3000`
 
 ## 환경 변수
-### Supabase
+`.env.local`에 아래 값을 설정합니다.
+
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
 
-### App Encryption
-```env
-APP_ENCRYPTION_KEY=... # base64 encoded 32-byte key
-```
-
-### Cloudflare R2
-```env
+# Cloudflare R2
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=...
 R2_PUBLIC_BASE_URL=...
+
+# Encryption (base64 32bytes)
+APP_ENCRYPTION_KEY=...
 ```
 
-## 사전 설정
-1. Supabase SQL Editor에서 아래 SQL을 순서대로 실행
-   - `docs/sql/profiles.sql`
-   - `docs/sql/posts.sql`
-   - `docs/sql/posts_tags.sql`
-   - `docs/sql/votes.sql`
-   - `docs/sql/notifications.sql`
-   - `docs/sql/reports.sql`
-   - `docs/sql/profiles_encryption.sql` (Part 12 선택)
-2. 랭킹 뷰 생성
-   - `weekly_post_rankings`
-   - `monthly_post_rankings`
-   - SQL은 `docs/1.md` Part 8 섹션 참고
-3. 알림 테이블/RPC 생성(Part 14)
-   - `notifications` 테이블 + RLS
-   - `notify_vote`, `notify_comment` RPC
-   - SQL은 `docs/1.md` Part 14 섹션 참고
-4. posts 태그 컬럼 생성(Part 15)
-   - `posts.tags text[]` 컬럼이 필요합니다.
-5. Supabase Auth > Providers에서 Google 활성화 (Kakao는 선택)
-6. Auth Redirect URL에 `/auth/callback` 경로 등록
-7. Cloudflare R2 버킷과 Public Base URL 설정
+## Supabase 초기 설정
+### 1) SQL 실행
+아래 SQL 파일을 순서대로 실행합니다.
+- `docs/sql/profiles.sql`
+- `docs/sql/posts.sql`
+- `docs/sql/posts_tags.sql`
+- `docs/sql/votes.sql`
+- `docs/sql/notifications.sql`
+- `docs/sql/reports.sql`
+- `docs/sql/profiles_encryption.sql` (선택)
 
-## 폴더 구조
+### 2) Auth Provider
+- Google OAuth 활성화
+- Redirect URL에 `/auth/callback` 등록
+- Kakao는 선택 사항(미설정 시 UI 안내)
+
+### 3) 랭킹 뷰/RPC
+- `weekly_post_rankings`, `monthly_post_rankings`
+- `notify_vote`, `notify_comment`, `admin_soft_delete_post`, `admin_soft_delete_comment` 등
+- 상세 SQL/작업 메모는 `docs/1.md` 참고
+
+## 주요 라우트
+- 공개: `/`, `/feed`, `/rank`, `/search`, `/p/[id]`, `/privacy`, `/terms`, `/contact`
+- 로그인 기반: `/post/new`, `/me`, `/notifications`
+- 관리자: `/admin`
+- API: `/api/upload`, `/api/posts`, `/api/votes`, `/api/comments`, `/api/reports`, `/api/profiles/encrypted`, `/auth/callback`
+
+## 프로젝트 구조(요약)
 ```text
-app/
-  admin/page.tsx
-  api/comments/route.ts
-  api/posts/route.ts
-  api/profiles/encrypted/route.ts
-  api/reports/route.ts
-  api/upload/route.ts
-  api/votes/route.ts
-  auth/callback/route.ts
-  contact/page.tsx
-  feed/page.tsx
-  me/page.tsx
-  me/loading.tsx
-  notifications/page.tsx
-  opengraph-image.tsx
-  p/[id]/page.tsx
-  privacy/page.tsx
-  post/new/page.tsx
-  rank/page.tsx
-  search/loading.tsx
-  search/page.tsx
-  robots.ts
-  sitemap.ts
-  terms/page.tsx
-  twitter-image.tsx
-  layout.tsx
-  page.tsx
-components/
-  Footer.tsx
-  Header.tsx
-  PageTitle.tsx
-  PostCard.tsx
-  layout/
-    Footer.tsx
-    Header.tsx
-  auth/
-    LoginModal.tsx
-    ProfileMenu.tsx
-  comment/
-    CommentSection.tsx
-  landing/
-    CTA.tsx
-    Hero.tsx
-    HowItWorks.tsx
-    RankPreview.tsx
-    SampleGallery.tsx
-  post/
-    ImageUploader.tsx
-    PostCard.tsx
-    PostItemCard.tsx
-    VoteButton.tsx
-  admin/
-    AdminReportsClient.tsx
-    ReportDetail.tsx
-    ReportsTable.tsx
-  me/
-    AccountDangerZone.tsx
-    MyComments.tsx
-    MyLikes.tsx
-    MyPosts.tsx
-    ProfileEditor.tsx
-  notifications/
-    NotificationList.tsx
-  report/
-    ReportButton.tsx
-    ReportModal.tsx
-  search/
-    SearchForm.tsx
-  ui/
-    Badge.tsx
-    Button.tsx
-    Card.tsx
-    Skeleton.tsx
-    State.tsx
-hooks/
-  useVote.ts
-lib/
-  admin.ts
-  comments.ts
-  crypto/
-    aesgcm.ts
-    profileSensitive.ts
-  mock.ts
-  posts.ts
-  notifications.ts
-  r2.ts
-  rankings.ts
-  reports.ts
-  tags.ts
-  votes.ts
-  log.ts
-  supabase/
-    client.ts
-    server.ts
-docs/
-  1.md
-  sql/profiles.sql
-  sql/posts.sql
-  sql/posts_tags.sql
-  sql/notifications.sql
-  sql/profiles_encryption.sql
-  sql/reports.sql
-  sql/votes.sql
-  진행사항.md
-supabase/
-  migrations/20260216_create_posts.sql
-  migrations/20260216_add_posts_tags.sql
-  migrations/20260216_create_notifications.sql
-  migrations/20260216_create_reports_admin.sql
-  migrations/20260216_profiles_encryption.sql
-  migrations/20260216_profiles_soft_delete.sql
-  migrations/20260216_create_votes.sql
+app/                # App Router 페이지 및 API
+components/         # UI/도메인 컴포넌트
+lib/                # 데이터 로직, Supabase, R2, 유틸
+docs/sql/           # 수동 실행용 SQL
+supabase/migrations # 마이그레이션 SQL
+docs/진행사항.md     # MVP 최종 진행 정리
+docs/1.md           # 다음 작업 계획/실험 노트
 ```
+
+## 검증 상태
+- `npm run lint` 통과
+- `npm run build` 통과
+
+## 참고 문서
+- MVP 최종 정리: `docs/진행사항.md`
+- 다음 작업 계획: `docs/1.md`
 
 ## 주의 사항
 - `posts`는 soft delete(`deleted_at`)를 사용합니다.

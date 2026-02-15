@@ -42,6 +42,13 @@ a {
   color: inherit;
 }
 
+/* Ensure readable text on all solid dark/brand fills used by tabs and pills. */
+.bg-\[var\(--foreground\)\],
+.bg-\[var\(--brand\)\],
+.bg-rose-600 {
+  color: #ffffff !important;
+}
+
 ::selection {
   color: #ffffff;
   background: var(--brand);
