@@ -9,6 +9,7 @@ const UUID_REGEX =
 type CreateCommentBody = {
   postId?: string;
   body?: string;
+  parentId?: string | null;
 };
 
 /**
@@ -80,6 +81,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: bodyValidation.message }, { status: 400 });
   }
 
+  const normalizedParentId =
+    typeof body.parentId === "string" && body.parentId.trim().length > 0
+      ? body.parentId.trim()
+      : null;
+
+  if (normalizedParentId && !isValidUuid(normalizedParentId)) {
+    return NextResponse.json(
+      { ok: false, message: "부모 댓글 ID가 올바르지 않습니다." },
+      { status: 400 },
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -106,14 +119,47 @@ export async function POST(request: Request) {
     );
   }
 
+  let parentComment: { id: string; user_id: string; depth: number } | null = null;
+
+  if (normalizedParentId) {
+    const { data: parentData, error: parentError } = await supabase
+      .from("comments")
+      .select("id, user_id, depth")
+      .eq("id", normalizedParentId)
+      .eq("post_id", body.postId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (parentError || !parentData) {
+      return NextResponse.json(
+        { ok: false, message: "답글 대상 댓글을 찾을 수 없습니다." },
+        { status: 404 },
+      );
+    }
+
+    if (parentData.depth !== 0) {
+      return NextResponse.json(
+        { ok: false, message: "대댓글에는 다시 답글을 달 수 없습니다." },
+        { status: 400 },
+      );
+    }
+
+    parentComment = parentData as { id: string; user_id: string; depth: number };
+  }
+
+  const insertPayload = {
+    post_id: body.postId,
+    user_id: user.id,
+    body: bodyValidation.value,
+    parent_id: parentComment ? parentComment.id : null,
+    depth: parentComment ? 1 : 0,
+    reply_to_user_id: parentComment ? parentComment.user_id : null,
+  };
+
   const { data: commentData, error: insertError } = await supabase
     .from("comments")
-    .insert({
-      post_id: body.postId,
-      user_id: user.id,
-      body: bodyValidation.value,
-    })
-    .select("id, post_id, user_id, body, created_at, deleted_at")
+    .insert(insertPayload)
+    .select("id, post_id, user_id, body, parent_id, depth, reply_to_user_id, created_at, deleted_at")
     .single();
 
   if (insertError || !commentData) {
@@ -134,4 +180,56 @@ export async function POST(request: Request) {
     ok: true,
     comment: commentData,
   });
+}
+
+/**
+ * 본인 댓글을 soft delete 처리하는 API입니다.
+ */
+export async function DELETE(request: Request) {
+  const requestUrl = new URL(request.url);
+  const commentId = requestUrl.searchParams.get("commentId")?.trim();
+
+  if (!commentId || !isValidUuid(commentId)) {
+    return NextResponse.json(
+      { ok: false, message: "댓글 ID가 올바르지 않습니다." },
+      { status: 400 },
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { ok: false, message: "댓글 삭제는 로그인 후 사용할 수 있습니다." },
+      { status: 401 },
+    );
+  }
+
+  const { data: deletedComment, error } = await supabase
+    .from("comments")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", commentId)
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json(
+      { ok: false, message: "댓글 삭제에 실패했습니다. 잠시 후 다시 시도해주세요." },
+      { status: 500 },
+    );
+  }
+
+  if (!deletedComment) {
+    return NextResponse.json(
+      { ok: false, message: "삭제할 댓글이 없거나 권한이 없습니다." },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({ ok: true });
 }

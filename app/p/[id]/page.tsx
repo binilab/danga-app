@@ -27,6 +27,9 @@ type CommentRow = {
   post_id: string;
   user_id: string;
   body: string;
+  parent_id: string | null;
+  depth: number;
+  reply_to_user_id: string | null;
   created_at: string;
   deleted_at: string | null;
   author_label?: string | null;
@@ -80,13 +83,12 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
     period: "weekly",
     postIds: [post.id],
   });
-  const { data: commentData } = await supabase
+  const { data: commentData, error: commentError } = await supabase
     .from("comments")
-    .select("id, post_id, user_id, body, created_at, deleted_at")
+    .select("id, post_id, user_id, body, parent_id, depth, reply_to_user_id, created_at, deleted_at")
     .eq("post_id", post.id)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .order("created_at", { ascending: true });
   const commentRows = (commentData ?? []) as CommentRow[];
   const authorLabelMap = await fetchAuthorLabelMapForUserIds({
     supabase,
@@ -148,6 +150,8 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
         postId={post.id}
         isLoggedIn={Boolean(user)}
         initialComments={comments}
+        hasInitialLoadError={Boolean(commentError)}
+        currentUserId={user?.id ?? null}
         currentUserLabel={currentUserLabel}
       />
     </div>
