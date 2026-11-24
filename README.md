@@ -83,7 +83,7 @@ APP_ENCRYPTION_KEY=...
 ### 3) 랭킹 뷰/RPC
 - `weekly_post_rankings`, `monthly_post_rankings`
 - `notify_vote`, `notify_comment`, `admin_soft_delete_post`, `admin_soft_delete_comment` 등
-- 상세 SQL/작업 메모는 `docs/1.md` 참고
+- SQL은 `supabase/migrations/`와 `docs/sql/` 참고
 
 ## 주요 라우트
 - 공개: `/`, `/feed`, `/rank`, `/search`, `/p/[id]`, `/privacy`, `/terms`, `/contact`
@@ -99,7 +99,6 @@ lib/                # 데이터 로직, Supabase, R2, 유틸
 docs/sql/           # 수동 실행용 SQL
 supabase/migrations # 마이그레이션 SQL
 docs/진행사항.md     # MVP 최종 진행 정리
-docs/1.md           # 다음 작업 계획/실험 노트
 ```
 
 ## 검증 상태
@@ -108,7 +107,6 @@ docs/1.md           # 다음 작업 계획/실험 노트
 
 ## 참고 문서
 - MVP 최종 정리: `docs/진행사항.md`
-- 다음 작업 계획: `docs/1.md`
 
 ## 주의 사항
 - `posts`는 soft delete(`deleted_at`)를 사용합니다.
